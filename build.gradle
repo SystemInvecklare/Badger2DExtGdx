@@ -1,0 +1,17 @@
+apply plugin: "java-library"
+
+sourceCompatibility = 1.6
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+
+repositories {
+	mavenCentral()
+	maven { url 'https://jitpack.io' }
+}
+
+
+dependencies {
+	implementation 'com.github.SystemInvecklare:Badger2DCore:r0.6.0'
+	implementation "com.badlogicgames.gdx:gdx:1.9.4"
+	implementation "com.badlogicgames.gdx:gdx-freetype:1.9.4"
+}
