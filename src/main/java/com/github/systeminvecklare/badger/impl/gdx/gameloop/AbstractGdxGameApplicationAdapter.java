@@ -5,12 +5,6 @@ import java.util.Collection;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
-import com.github.systeminvecklare.badger.impl.gdx.FlashyInputProcessor;
-import com.github.systeminvecklare.badger.impl.gdx.FontStore;
-import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
-import com.github.systeminvecklare.badger.impl.gdx.SoundStore;
-import com.github.systeminvecklare.badger.impl.gdx.TextureStore;
 import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IIntSource;
@@ -23,6 +17,9 @@ import com.github.systeminvecklare.badger.core.graphics.framework.engine.gameloo
 import com.github.systeminvecklare.badger.core.graphics.framework.engine.gameloop.IGameLoop;
 import com.github.systeminvecklare.badger.core.graphics.framework.engine.inputprocessor.FlashyInputHandler;
 import com.github.systeminvecklare.badger.core.graphics.framework.engine.inputprocessor.IInputHandler;
+import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
+import com.github.systeminvecklare.badger.impl.gdx.FlashyInputProcessor;
+import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
 
 public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapter implements ISceneManager {
 	private IScene currentScene;
@@ -138,9 +135,7 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 	public void resume() {
 		// Android app regained focus
 		super.resume();
-		TextureStore.reloadGraphics();
-		SoundStore.reloadSounds();
-		FontStore.reloadFonts();
+		FlashyGdxEngine.get().reloadStoreInventories();
 		this.drawCycle  = new GdxDrawCycle();
 	}
 	
@@ -148,9 +143,7 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 	public void pause() {
 		super.pause();
 		// Android app lost focus
-		TextureStore.disposeGraphics();
-		SoundStore.disposeSounds();
-		FontStore.disposeFonts();
+		FlashyGdxEngine.get().disposeStoreInventories();
 	}
 	
 	@Override

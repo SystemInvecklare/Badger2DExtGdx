@@ -1,10 +1,10 @@
 package com.github.systeminvecklare.badger.impl.gdx;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
-import com.github.systeminvecklare.badger.impl.gdx.audio.FlashySound;
-import com.github.systeminvecklare.badger.impl.gdx.audio.IFlashySoundDelegate;
-import com.github.systeminvecklare.badger.impl.gdx.audio.NonThreadedFlashySoundDelegate;
 import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
 import com.github.systeminvecklare.badger.core.graphics.components.layer.ILayerDelegate;
 import com.github.systeminvecklare.badger.core.graphics.components.layer.Layer;
@@ -24,9 +24,14 @@ import com.github.systeminvecklare.badger.core.pooling.SimplePool;
 import com.github.systeminvecklare.badger.core.util.ISmartList;
 import com.github.systeminvecklare.badger.core.util.PoolableArrayOf16Floats;
 import com.github.systeminvecklare.badger.core.util.SmartList;
+import com.github.systeminvecklare.badger.impl.gdx.audio.FlashySound;
+import com.github.systeminvecklare.badger.impl.gdx.audio.IFlashySoundDelegate;
+import com.github.systeminvecklare.badger.impl.gdx.audio.NonThreadedFlashySoundDelegate;
+import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
 
 public class FlashyGdxEngine implements IFlashyEngine {
 	private FlashyPoolManager poolManager;
+	private List<IStore> stores = new ArrayList<IStore>();
 	
 	public FlashyGdxEngine() {
 		this.poolManager = new FlashyPoolManager()
@@ -109,8 +114,23 @@ public class FlashyGdxEngine implements IFlashyEngine {
 		return new SmartList<T>();
 	}
 	
-	public static FlashyGdxEngine get()
-	{
+	public void registerStore(IStore store) {
+		stores.add(store);
+	}
+	
+	public void reloadStoreInventories() {
+		for(IStore store : stores) {
+			store.reloadInventory();
+		}
+	}
+	
+	public void disposeStoreInventories() {
+		for(IStore store : stores) {
+			store.disposeInventory();
+		}
+	}
+	
+	public static FlashyGdxEngine get() {
 		return (FlashyGdxEngine) FlashyEngine.get();
 	}
 }

@@ -1,4 +1,4 @@
-package com.github.systeminvecklare.badger.impl.gdx;
+package com.github.systeminvecklare.badger.impl.gdx.store;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,8 +10,22 @@ import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 
 public class TextureStore {
+	static {
+		FlashyGdxEngine.get().registerStore(new IStore() {
+			@Override
+			public void reloadInventory() {
+				reloadGraphics();
+			}
+			
+			@Override
+			public void disposeInventory() {
+				disposeGraphics();
+			}
+		});
+	}
 	private static Map<NinePatchDefinition, NinePatch> ninepatches = new HashMap<NinePatchDefinition, NinePatch>();
 	private static Map<String, Texture> textures = new HashMap<String, Texture>();
 	private static Map<String, BitmapFont> fonts = new HashMap<String, BitmapFont>();

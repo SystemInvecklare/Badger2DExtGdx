@@ -1,7 +1,7 @@
 package com.github.systeminvecklare.badger.impl.gdx.audio;
 
 import com.badlogic.gdx.audio.Sound;
-import com.github.systeminvecklare.badger.impl.gdx.SoundStore;
+import com.github.systeminvecklare.badger.impl.gdx.store.SoundStore;
 
 public class NonThreadedFlashySoundDelegate implements IFlashySoundDelegate {
 	private String soundName;

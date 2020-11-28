@@ -1,4 +1,4 @@
-package com.github.systeminvecklare.badger.impl.gdx;
+package com.github.systeminvecklare.badger.impl.gdx.store;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -7,8 +7,22 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
+import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 
 public class FontStore {
+	static {
+		FlashyGdxEngine.get().registerStore(new IStore() {
+			@Override
+			public void reloadInventory() {
+				reloadFonts();
+			}
+			
+			@Override
+			public void disposeInventory() {
+				disposeFonts();
+			}
+		});
+	}
 	private static Map<FontKey, BitmapFont> fonts = new HashMap<FontKey, BitmapFont>();
 
 	public static BitmapFont getFont(String fontName, int size) {

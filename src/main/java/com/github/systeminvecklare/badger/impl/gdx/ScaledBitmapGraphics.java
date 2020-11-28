@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
+import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class ScaledBitmapGraphics implements IMovieClipLayer {
 	private String textureName;

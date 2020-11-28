@@ -12,6 +12,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.core.ISource;
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.pooling.IPool;
+import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class BitmapAnimationGraphics implements IMovieClipLayer {
 	@SuppressWarnings({ "unchecked", "rawtypes" })

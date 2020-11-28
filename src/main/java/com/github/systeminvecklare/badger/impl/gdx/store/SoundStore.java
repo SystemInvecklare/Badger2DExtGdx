@@ -1,12 +1,26 @@
-package com.github.systeminvecklare.badger.impl.gdx;
+package com.github.systeminvecklare.badger.impl.gdx.store;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
+import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 
 public class SoundStore {
+	static {
+		FlashyGdxEngine.get().registerStore(new IStore() {
+			@Override
+			public void reloadInventory() {
+				reloadSounds();
+			}
+			
+			@Override
+			public void disposeInventory() {
+				disposeSounds();
+			}
+		});
+	}
 	private static Map<String, Sound> sounds = new HashMap<String, Sound>();
 
 	public static Sound getSound(String soundName) {
