@@ -18,11 +18,6 @@ public class PoolableMatrix4 implements IPoolable {
 	public void free() {
 		pool.free(this);
 	}
-
-	@Override
-	public IPool<PoolableMatrix4> getPool() {
-		return pool;
-	}
 	
 	public Matrix4 getMatrix4() {
 		return matrix4;

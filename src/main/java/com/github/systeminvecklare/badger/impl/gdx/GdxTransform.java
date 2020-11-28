@@ -3,10 +3,12 @@ package com.github.systeminvecklare.badger.impl.gdx;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
+import com.github.systeminvecklare.badger.core.graphics.components.transform.AbstractTransform;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.IReadableTransform;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
 import com.github.systeminvecklare.badger.core.math.AbstractPosition;
 import com.github.systeminvecklare.badger.core.math.AbstractRotation;
+import com.github.systeminvecklare.badger.core.math.AbstractVector;
 import com.github.systeminvecklare.badger.core.math.IReadableDeltaRotation;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.math.IReadableRotation;
@@ -24,7 +26,7 @@ import com.github.systeminvecklare.badger.core.pooling.IPool;
  * @author Matte
  *
  */
-public class GdxTransform implements ITransform {
+public class GdxTransform extends AbstractTransform {
 	private IPool<ITransform> pool; 
 	private Matrix4 matrix4;
 	private TransPosition myPos = new TransPosition();
@@ -39,11 +41,6 @@ public class GdxTransform implements ITransform {
 	@Override
 	public void free() {
 		pool.free(this);
-	}
-
-	@Override
-	public IPool<ITransform> getPool() {
-		return pool;
 	}
 
 	@Override
@@ -371,7 +368,7 @@ public class GdxTransform implements ITransform {
 		}
 	}
 	
-	private class TransScale implements IReadableVector {
+	private class TransScale extends AbstractVector {
 
 		@Override
 		public float getX() {
@@ -417,33 +414,6 @@ public class GdxTransform implements ITransform {
 			{
 				ep.freeAllAndSelf();
 			}
-		}
-
-		@Override
-		public float length() {
-			return Mathf.sqrt(length2());
-		}
-
-		@Override
-		public float length2() {
-			float x = getX();
-			float y = getY();
-			return x*x+y*y;
-		}
-
-		@Override
-		public float dot(IReadableVector other) {
-			return Vector.dot(this, other);
-		}
-
-		@Override
-		public float cross(IReadableVector other) {
-			return Vector.cross(this, other);
-		}
-
-		@Override
-		public float getRotationTheta() {
-			return Vector.getRotationTheta(this);
 		}
 	}
 	
