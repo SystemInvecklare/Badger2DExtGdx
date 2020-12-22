@@ -2,17 +2,36 @@ package com.github.systeminvecklare.badger.impl.gdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.github.systeminvecklare.badger.impl.gdx.vectorgraphics.GdxVectorDrawer;
-import com.github.systeminvecklare.badger.impl.gdx.vectorgraphics.IGdxVectorDrawer;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.shader.IShader;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
+import com.github.systeminvecklare.badger.impl.gdx.vectorgraphics.GdxVectorDrawer;
+import com.github.systeminvecklare.badger.impl.gdx.vectorgraphics.IGdxVectorDrawer;
 
 public class GdxDrawCycle implements IDrawCycle {
 	private ITransform transform = FlashyEngine.get().getPoolManager().getPool(ITransform.class).obtain().setToIdentity();
 	private IShader shader;
-	private SpriteBatch spriteBatch = new SpriteBatch();
+	private SpriteBatch spriteBatch = new SpriteBatch() {
+		protected void setupMatrices() {
+			if(ShaderProgram.pedantic) {
+				ShaderProgram shaderProgram = getShader();
+				if(shaderProgram != null) {
+					if(!shaderProgram.hasUniform("u_texture")) {
+						ShaderProgram.pedantic = false;
+						try {
+							super.setupMatrices();
+							return;
+						} finally {
+							ShaderProgram.pedantic = true;
+						}
+					}
+				}
+			}
+			super.setupMatrices();
+		}
+	};
 	private IGdxVectorDrawer vectorDrawer = new GdxVectorDrawer();
 
 	@Override
