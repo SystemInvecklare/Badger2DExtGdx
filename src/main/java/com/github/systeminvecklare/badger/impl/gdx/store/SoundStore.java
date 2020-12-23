@@ -1,66 +1,26 @@
 package com.github.systeminvecklare.badger.impl.gdx.store;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 
 public class SoundStore {
+	private static AbstractStore<String, Sound> soundStore = new AbstractStore<String, Sound>() {
+		@Override
+		protected Sound loadItem(String itemName) {
+			return Gdx.audio.newSound(Gdx.files.internal(itemName));
+		}
+
+		@Override
+		protected void disposeItem(Sound item) {
+			item.dispose();
+		}
+	};
 	static {
-		FlashyGdxEngine.get().registerStore(new IStore() {
-			@Override
-			public void reloadInventory() {
-				reloadSounds();
-			}
-			
-			@Override
-			public void disposeInventory() {
-				disposeSounds();
-			}
-		});
+		FlashyGdxEngine.get().registerStore(soundStore);
 	}
-	private static Map<String, Sound> sounds = new HashMap<String, Sound>();
-
+	
 	public static Sound getSound(String soundName) {
-		Sound sound = sounds.get(soundName);
-		if(sound == null)
-		{
-			sound = loadSound(soundName);
-		}
-		return sound;
-	}
-	
-	private static Sound loadSound(String soundName)
-	{
-		Sound sound = Gdx.audio.newSound(Gdx.files.internal(soundName));
-		sounds.put(soundName, sound);
-		return sound;
-	}
-	
-	public static void reloadSounds()
-	{
-		for(String soundName : sounds.keySet())
-		{
-			Sound current = sounds.get(soundName);
-			if(current != null)
-			{
-				current.dispose();
-			}
-			sounds.put(soundName, loadSound(soundName));
-		}
-	}
-
-	public static void disposeSounds() {
-		for(String soundName : sounds.keySet())
-		{
-			Sound current = sounds.get(soundName);
-			if(current != null)
-			{
-				current.dispose();
-			}
-			sounds.put(soundName, null);
-		}
+		return soundStore.getItem(soundName);
 	}
 }
