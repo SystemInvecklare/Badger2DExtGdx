@@ -6,14 +6,14 @@ import com.badlogic.gdx.Files.FileType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.github.systeminvecklare.badger.impl.gdx.Badger2DExtGdx;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 
 public class ShaderStore {
 	private static final AbstractStore<ShaderKey, ShaderProgram> store = new AbstractStore<ShaderKey, ShaderProgram>() {
 		@Override
 		protected ShaderProgram loadItem(ShaderKey shaderKey) {
-			ShaderProgram shaderProgram = new ShaderProgram(toFileHandle(shaderKey.vertexShaderName), toFileHandle(shaderKey.fragmentShaderName));
+			
+			ShaderProgram shaderProgram = new ShaderProgram(readShader(shaderKey.vertexShaderName), readShader(shaderKey.fragmentShaderName));
 			if(!shaderProgram.isCompiled()) {
 				throw new RuntimeException(shaderProgram.getLog());
 			}
@@ -30,16 +30,42 @@ public class ShaderStore {
 		FlashyGdxEngine.get().registerStore(store);
 	}
 	
-	private static final String DEFAULT_VERTEXT_SHADER = Badger2DExtGdx.classpath("shaders/vertex.glsl");//"classpath:res/badger2dextgdx/shaders/vertex.glsl";
+	private static final String DEFAULT_VERTEXT_SHADER_KEY = "DEFAULT_VERTEXT_SHADER_KEY";
+	private static String DEFAULT_VERTEXT_SHADER = "#ifdef GL_ES\r\n" + 
+			"    precision mediump float;\r\n" + 
+			"#endif\r\n" + 
+			"\r\n" + 
+			"attribute vec4 a_position;\r\n" + 
+			"attribute vec4 a_color;\r\n" + 
+			"attribute vec2 a_texCoord0;\r\n" + 
+			"\r\n" + 
+			"uniform mat4 u_projTrans;\r\n" + 
+			"\r\n" + 
+			"varying vec4 v_color;\r\n" + 
+			"varying vec2 v_texCoords;\r\n" + 
+			"\r\n" + 
+			"void main() {\r\n" + 
+			"    v_color = a_color;\r\n" + 
+			"    v_texCoords = a_texCoord0;\r\n" + 
+			"    gl_Position = u_projTrans * a_position;\r\n" + 
+			"}";
 	
 	public static ShaderProgram getFragmentShader(String fragmentShaderName) {
-		return store.getItem(new ShaderKey(DEFAULT_VERTEXT_SHADER, fragmentShaderName));
+		return store.getItem(new ShaderKey(DEFAULT_VERTEXT_SHADER_KEY, fragmentShaderName));
 	}
 	
 
 	public static ShaderProgram getShader(String vertexShaderName, String fragmentShaderName) {
 		return store.getItem(new ShaderKey(vertexShaderName, fragmentShaderName));
 	}
+	
+	private static String readShader(String shaderKey) {
+		if(DEFAULT_VERTEXT_SHADER_KEY.equals(shaderKey)) {
+			return DEFAULT_VERTEXT_SHADER;
+		} else {
+			return toFileHandle(shaderKey).readString();
+		}
+	} 
 	
 	private static FileHandle toFileHandle(String pathName) {
 		int colonPos = pathName.indexOf(":");
