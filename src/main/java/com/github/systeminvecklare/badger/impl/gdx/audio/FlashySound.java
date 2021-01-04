@@ -1,7 +1,6 @@
 package com.github.systeminvecklare.badger.impl.gdx.audio;
 
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
-import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
 
 public class FlashySound implements IFlashySound {
 	private IFlashySoundDelegate delegate;

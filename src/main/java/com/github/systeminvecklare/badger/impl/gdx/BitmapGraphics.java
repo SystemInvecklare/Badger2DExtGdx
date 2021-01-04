@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
+import com.github.systeminvecklare.badger.core.util.GeometryUtil;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class BitmapGraphics implements IMovieClipLayer {
@@ -18,6 +19,7 @@ public class BitmapGraphics implements IMovieClipLayer {
 	private Float height;
 	private TextureWrap xWrap = TextureWrap.ClampToEdge;
 	private TextureWrap yWrap = TextureWrap.ClampToEdge;
+	private boolean hittable = false;
 	
 	public BitmapGraphics(String textureName, Color tint) {
 		this(textureName, tint, null, null);
@@ -30,17 +32,19 @@ public class BitmapGraphics implements IMovieClipLayer {
 		this.height = height;
 	}
 
-	public BitmapGraphics setCenter(float x, float y)
-	{
+	public BitmapGraphics setCenter(float x, float y) {
 		this.centerX = x;
 		this.centerY = y;
 		return this;
 	}
 	
 	
-	public BitmapGraphics setCenter(float xAndY)
-	{
+	public BitmapGraphics setCenter(float xAndY) {
 		return setCenter(xAndY, xAndY);
+	}
+	
+	public BitmapGraphics setCenterRelative(float rx, float ry) {
+		return setCenter(rx*getWidth(), ry*getHeight());
 	}
 
 
@@ -54,7 +58,7 @@ public class BitmapGraphics implements IMovieClipLayer {
 		
 		float theWidth = getWidth();
 		float theHeight = getHeight();
-		spriteBatch.draw(texture, -centerX, -centerY, theWidth, theHeight);
+		spriteBatch.draw(texture, -getCenterX(), -getCenterY(), theWidth, theHeight);
 	}
 	
 	public float getHeight() {
@@ -100,6 +104,14 @@ public class BitmapGraphics implements IMovieClipLayer {
 		}
 		return theWidth;
 	}
+	
+	public float getCenterX() {
+		return centerX;
+	}
+	
+	public float getCenterY() {
+		return centerY;
+	}
 
 	public BitmapGraphics repeatX() {
 		this.xWrap = TextureWrap.Repeat;
@@ -113,6 +125,9 @@ public class BitmapGraphics implements IMovieClipLayer {
 
 	@Override
 	public boolean hitTest(IReadablePosition p) {
+		if(hittable) {
+			return GeometryUtil.isInRectangle(p.getX(), p.getY(), -getCenterX(), -getCenterY(), getWidth(), getHeight());
+		}
 		//TODO this needs to take into account scaling and center
 //			Texture texture = TextureStore.getTexture(textureName);
 //			
@@ -155,5 +170,10 @@ public class BitmapGraphics implements IMovieClipLayer {
 
 	@Override
 	public void init() {
+	}
+
+	public BitmapGraphics makeHittable() {
+		hittable = true;
+		return this;
 	}
 }

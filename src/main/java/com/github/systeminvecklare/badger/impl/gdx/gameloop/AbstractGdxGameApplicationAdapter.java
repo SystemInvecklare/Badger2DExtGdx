@@ -103,6 +103,14 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 	}
 	
 	@Override
+	public void changeScene(IScene newScene, boolean initScene) {
+		changeScene(newScene);
+		if(initScene) {
+			newScene.init();
+		}
+	}
+	
+	@Override
 	public void emptyTrashCan() {
 		synchronized (trashCan) {
 			for(IScene doomedScene : trashCan)
