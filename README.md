@@ -50,6 +50,23 @@ someFolder/
     └── build.gradle
 ```
 
+#### Use local version of Badger2DCore
+Add the following in `MyLibGdxProject/build.gradle`:
+
+```gradle
+...
+allprojects {
+    ...
+    configurations.all {
+	    resolutionStrategy.dependencySubstitution {
+	        substitute module("com.github.SystemInvecklare:Badger2DCore") using project(":Badger2DCore") because "Using local"
+	    }
+	}
+}
+...
+
+```
+
 #### Include projects in build
 Add the following to `MyLibGdxProject/setting.gradle`:
 
