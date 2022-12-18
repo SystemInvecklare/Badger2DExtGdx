@@ -489,4 +489,9 @@ public class GdxTransform extends AbstractTransform {
 		builder.append("\n");
 		return builder.toString();
 	}
+
+	@Override
+	public ITransform copy() {
+		return new GdxTransform(null).setTo(this);
+	}
 }

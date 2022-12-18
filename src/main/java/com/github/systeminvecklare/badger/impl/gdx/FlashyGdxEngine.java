@@ -3,6 +3,7 @@ package com.github.systeminvecklare.badger.impl.gdx;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
@@ -112,6 +113,16 @@ public class FlashyGdxEngine implements IFlashyEngine {
 	@Override
 	public <T> ISmartList<T> newSmartList() {
 		return new SmartList<T>();
+	}
+	
+	@Override
+	public void copyToClipboard(CharSequence text) {
+		Gdx.app.getClipboard().setContents(text.toString());
+	}
+	
+	@Override
+	public String pasteFromClipboard() {
+		return Gdx.app.getClipboard().getContents();
 	}
 	
 	public void registerStore(IStore store) {
