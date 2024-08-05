@@ -14,7 +14,7 @@ sourceSets.main.resources.srcDirs = ["src/main/java"]
 
 
 dependencies {
-	implementation "com.github.SystemInvecklare:Badger2DCore:r0.12.1"
+	implementation "com.github.SystemInvecklare:Badger2DCore:r0.15.0"
 	if(project.hasProperty("gdxVersion")) {
 		implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
 	} else {

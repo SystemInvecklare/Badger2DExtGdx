@@ -328,6 +328,10 @@ public class GdxTransform extends AbstractTransform {
 		return multiplyScale(dscale.getX(), dscale.getY());
 	}
 	
+	@Override
+	public ITransform multiplyScale(float s) {
+		return multiplyScale(s, s);
+	}
 	
 	private class TransPosition extends AbstractPosition implements IReadablePosition {
 
