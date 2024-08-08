@@ -9,8 +9,10 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout.GlyphRun;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Align;
 import com.github.systeminvecklare.badger.core.font.IFlashyFont;
+import com.github.systeminvecklare.badger.core.font.IFlashyText;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.util.FloatRectangle;
+import com.github.systeminvecklare.badger.core.util.IFloatRectangle;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
 
 public class FlashyBitmapFont implements IFlashyFont<Color> {
@@ -121,6 +123,29 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		bitmapFont.setColor(tint);
 		bitmapFont.draw(spriteBatch, text, x, y, maxWidth, Align.center, true);
 	}
+	
+	@Override
+	public IFlashyText createText(String text, Color tint) {
+		BitmapFont bitmapFont = fontHolder.getFont();
+		bitmapFont.setColor(tint);
+		GlyphLayout glyphLayout = new GlyphLayout(bitmapFont, text);
+		return new FlashyText(glyphLayout, getBoundsFromGlyphLayout(glyphLayout));
+	}
+	
+
+	@Override
+	public IFlashyText createTextWrapped(String text, Color tint, float maxWidth) {
+		BitmapFont bitmapFont = fontHolder.getFont();
+		GlyphLayout glyphLayout = new GlyphLayout(bitmapFont, text, tint, maxWidth, Align.left, true);
+		return new FlashyText(glyphLayout, getBoundsFromGlyphLayout(glyphLayout));
+	}
+
+	@Override
+	public IFlashyText createTextWrappedCentered(String text, Color tint, float maxWidth) {
+		BitmapFont bitmapFont = fontHolder.getFont();
+		GlyphLayout glyphLayout = new GlyphLayout(bitmapFont, text, tint, maxWidth, Align.center, true);
+		return new FlashyText(glyphLayout, getBoundsFromGlyphLayout(glyphLayout));
+	}
 
 	private static class LazyBitmapFont {
 		private BitmapFont font = null;
@@ -131,9 +156,33 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		
 		public BitmapFont getFont() {
 			if(font == null) {
+				//TODO This should probably use TextureStore and getBitmapFont(fontName)?
 				font = new BitmapFont(fileHandle);
 			}
 			return font;
+		}
+	}
+	
+	private class FlashyText implements IFlashyText {
+		private final GlyphLayout glyphLayout;
+		private final FloatRectangle bounds;
+
+		public FlashyText(GlyphLayout glyphLayout, FloatRectangle bounds) {
+			this.glyphLayout = glyphLayout;
+			this.bounds = bounds;
+		}
+
+		@Override
+		public IFloatRectangle getBounds() {
+			return bounds;
+		}
+
+		@Override
+		public void draw(IDrawCycle drawCycle, float x, float y) {
+			GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
+			gdxDrawCycle.updateSpriteBatchTransform();
+			SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
+			FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, x, y);
 		}
 	}
 }
