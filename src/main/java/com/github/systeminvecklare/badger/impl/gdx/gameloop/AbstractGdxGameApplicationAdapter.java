@@ -53,7 +53,7 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 		
 		this.applicationContext.init();
 		
-		this.inputHandler = new FlashyInputHandler(new IIntSource() {
+		this.inputHandler = newFlashyInputHandler(new IIntSource() {
 			@Override
 			public int getFromSource() {
 				return Gdx.graphics.getHeight();
@@ -83,6 +83,10 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 		this.currentScene.init();
 		
 		Gdx.input.setInputProcessor(new FlashyInputProcessor(inputHandler));
+	}
+
+	protected IInputHandler newFlashyInputHandler(IIntSource screenHeightSource) {
+		return new FlashyInputHandler(screenHeightSource);
 	}
 
 	protected abstract IScene getInitialScene();

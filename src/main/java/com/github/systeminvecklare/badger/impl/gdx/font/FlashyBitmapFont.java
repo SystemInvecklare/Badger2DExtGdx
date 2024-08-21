@@ -125,26 +125,34 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 	}
 	
 	@Override
-	public IFlashyText createText(String text, Color tint) {
-		BitmapFont bitmapFont = fontHolder.getFont();
-		bitmapFont.setColor(tint);
-		GlyphLayout glyphLayout = new GlyphLayout(bitmapFont, text);
-		return new FlashyText(glyphLayout, getBoundsFromGlyphLayout(glyphLayout));
+	public IFlashyText createText(final String text, Color tint) {
+		return new FlashyText(text, tint) {
+			@Override
+			protected GlyphLayout createLayout(BitmapFont bitmapFont, String text) {
+				return new GlyphLayout(bitmapFont, text);
+			}
+		};
 	}
 	
 
 	@Override
-	public IFlashyText createTextWrapped(String text, Color tint, float maxWidth) {
-		BitmapFont bitmapFont = fontHolder.getFont();
-		GlyphLayout glyphLayout = new GlyphLayout(bitmapFont, text, tint, maxWidth, Align.left, true);
-		return new FlashyText(glyphLayout, getBoundsFromGlyphLayout(glyphLayout));
+	public IFlashyText createTextWrapped(String text, Color tint, final float maxWidth) {
+		return new FlashyText(text, tint) {
+			@Override
+			protected GlyphLayout createLayout(BitmapFont bitmapFont, String text) {
+				return new GlyphLayout(bitmapFont, text, bitmapFont.getColor(), maxWidth, Align.left, true);
+			}
+		};
 	}
 
 	@Override
-	public IFlashyText createTextWrappedCentered(String text, Color tint, float maxWidth) {
-		BitmapFont bitmapFont = fontHolder.getFont();
-		GlyphLayout glyphLayout = new GlyphLayout(bitmapFont, text, tint, maxWidth, Align.center, true);
-		return new FlashyText(glyphLayout, getBoundsFromGlyphLayout(glyphLayout));
+	public IFlashyText createTextWrappedCentered(String text, Color tint, final float maxWidth) {
+		return new FlashyText(text, tint) {
+			@Override
+			protected GlyphLayout createLayout(BitmapFont bitmapFont, String text) {
+				return new GlyphLayout(bitmapFont, text, bitmapFont.getColor(), maxWidth, Align.center, true);
+			}
+		};
 	}
 
 	private static class LazyBitmapFont {
@@ -163,13 +171,33 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		}
 	}
 	
-	private class FlashyText implements IFlashyText {
-		private final GlyphLayout glyphLayout;
-		private final FloatRectangle bounds;
+	private abstract class FlashyText implements IFlashyText {
+		private final String text;
+		private final Color color;
+		private final Color colorCacheKey = new Color();
+		private GlyphLayout glyphLayout;
+		private FloatRectangle bounds;
 
-		public FlashyText(GlyphLayout glyphLayout, FloatRectangle bounds) {
-			this.glyphLayout = glyphLayout;
-			this.bounds = bounds;
+		public FlashyText(String text, Color color) {
+			this.text = text;
+			this.color = color;
+			refresh();
+		}
+		
+		private void refresh() {
+			BitmapFont bitmapFont = fontHolder.getFont();
+			bitmapFont.setColor(color);
+			this.glyphLayout = createLayout(bitmapFont, text);
+			colorCacheKey.set(color);
+			this.bounds = getBoundsFromGlyphLayout(glyphLayout);
+		}
+		
+		protected abstract GlyphLayout createLayout(BitmapFont bitmapFont, String text);
+		
+		private void assertFresh() {
+			if(!colorCacheKey.equals(color)) {
+				refresh();
+			}
 		}
 
 		@Override
@@ -179,6 +207,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 
 		@Override
 		public void draw(IDrawCycle drawCycle, float x, float y) {
+			assertFresh();
 			GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
 			gdxDrawCycle.updateSpriteBatchTransform();
 			SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
