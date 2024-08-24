@@ -22,6 +22,8 @@ public class BitmapPartGraphics implements IMovieClipLayer {
 	private float height;
 	private TextureWrap xWrap = TextureWrap.ClampToEdge;
 	private TextureWrap yWrap = TextureWrap.ClampToEdge;
+	private boolean flipX = false;
+	private boolean flipY = false;
 	
 	public BitmapPartGraphics(String textureName, Color tint, int srcX, int srcY, int srcWidth, int srcHeight) {
 		this(textureName, tint, srcX, srcY, srcWidth, srcHeight,(float) srcWidth,(float) srcHeight);
@@ -75,9 +77,35 @@ public class BitmapPartGraphics implements IMovieClipLayer {
 		spriteBatch.setColor(tint);
 		Texture texture = TextureStore.getTexture(textureName);
 		texture.setWrap(xWrap, yWrap);
-		spriteBatch.draw(texture, -centerX, -centerY, width, height, srcX, srcY, srcWidth, srcHeight, false, false);
+		spriteBatch.draw(texture, -centerX, -centerY, width, height, srcX, srcY, srcWidth, srcHeight, getFlipX(), getFlipY());
 	}
 	
+	public boolean getFlipY() {
+		return flipY;
+	}
+
+	public boolean getFlipX() {
+		return flipX;
+	}
+	
+	public float getWidth() {
+		return width;
+	}
+	
+	public float getHeight() {
+		return height;
+	}
+	
+	public BitmapPartGraphics setFlipX(boolean flipX) {
+		this.flipX = flipX;
+		return this;
+	}
+	
+	public BitmapPartGraphics setFlipY(boolean flipY) {
+		this.flipY = flipY;
+		return this;
+	}
+
 	public BitmapPartGraphics repeatX() {
 		this.xWrap = TextureWrap.Repeat;
 		return this;
