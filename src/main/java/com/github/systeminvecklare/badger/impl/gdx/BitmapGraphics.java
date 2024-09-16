@@ -52,7 +52,7 @@ public class BitmapGraphics implements IMovieClipLayer {
 	public void draw(IDrawCycle drawCycle) {
 		SpriteBatch spriteBatch = ((GdxDrawCycle) drawCycle).getSpriteBatch();
 		((GdxDrawCycle) drawCycle).updateSpriteBatchTransform();
-		spriteBatch.setColor(tint);
+		spriteBatch.setColor(getTint());
 		Texture texture = TextureStore.getTexture(textureName);
 		texture.setWrap(xWrap, yWrap);
 		
@@ -61,6 +61,10 @@ public class BitmapGraphics implements IMovieClipLayer {
 		spriteBatch.draw(texture, -getCenterX(), -getCenterY(), theWidth, theHeight);
 	}
 	
+	public Color getTint() {
+		return tint;
+	}
+
 	public float getHeight() {
 		Texture texture = TextureStore.getTexture(textureName);
 		float theHeight;
