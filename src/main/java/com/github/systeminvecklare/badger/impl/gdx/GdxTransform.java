@@ -6,6 +6,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.AbstractTransform;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.IReadableTransform;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
+import com.github.systeminvecklare.badger.core.graphics.components.transform.NonInvertibleMatrixException;
 import com.github.systeminvecklare.badger.core.math.AbstractPosition;
 import com.github.systeminvecklare.badger.core.math.AbstractRotation;
 import com.github.systeminvecklare.badger.core.math.AbstractVector;
@@ -189,9 +190,13 @@ public class GdxTransform extends AbstractTransform {
 	}
 
 	@Override
-	public ITransform invert() {
-		matrix4.inv();
-		return this;
+	public ITransform invert() throws NonInvertibleMatrixException {
+		try {
+			matrix4.inv();
+			return this;
+		} catch(RuntimeException e) {
+			throw new NonInvertibleMatrixException(e);
+		}
 	}
 	
 	@Override

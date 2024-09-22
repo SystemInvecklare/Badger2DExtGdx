@@ -6,6 +6,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.layer.ILayer;
 import com.github.systeminvecklare.badger.core.graphics.components.movieclip.IMovieClip;
 import com.github.systeminvecklare.badger.core.graphics.components.scene.Scene;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
+import com.github.systeminvecklare.badger.core.graphics.components.transform.NonInvertibleMatrixException;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.math.Position;
 import com.github.systeminvecklare.badger.core.pooling.EasyPooler;
@@ -51,6 +52,9 @@ public class CameraScene extends Scene {
 				EasyPooler ep = EasyPooler.obtainFresh();
 				try {
 					trackPos.setTo(layer.toLocalTransform(target.toGlobalTransform(ep.obtain(ITransform.class).setToIdentity())).getPosition());
+				} catch (NonInvertibleMatrixException e) {
+					// Non-invertible -> don't update trackPos
+					e.printStackTrace();
 				} finally {
 					ep.freeAllAndSelf();
 				}
