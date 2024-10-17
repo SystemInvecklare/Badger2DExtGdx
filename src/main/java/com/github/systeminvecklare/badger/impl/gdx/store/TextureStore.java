@@ -1,6 +1,8 @@
 package com.github.systeminvecklare.badger.impl.gdx.store;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.badlogic.gdx.Gdx;
@@ -9,6 +11,7 @@ import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 
@@ -27,11 +30,17 @@ public class TextureStore {
 		});
 	}
 	private static Map<NinePatchDefinition, NinePatch> ninepatches = new HashMap<NinePatchDefinition, NinePatch>();
-	private static Map<String, Texture> textures = new HashMap<String, Texture>();
+	private static Map<String, ITexture> textures = new HashMap<String, ITexture>();
+	private static List<Texture> managedTextures = new ArrayList<Texture>();
 	private static Map<String, BitmapFont> fonts = new HashMap<String, BitmapFont>();
+	private static List<IAtlasBuilder> textureAtlases = new ArrayList<IAtlasBuilder>(0);
+	
+	public static void registerTextureAtlas(IAtlasBuilder atlasBuilder) {
+		textureAtlases.add(atlasBuilder);
+	}
 
-	public static Texture getTexture(String textureName) {
-		Texture texture = textures.get(textureName);
+	public static ITexture getTexture(String textureName) {
+		ITexture texture = textures.get(textureName);
 		if(texture == null)
 		{
 			texture = loadTexture(textureName);
@@ -66,32 +75,46 @@ public class TextureStore {
 		return font;
 	}
 
-	private static Texture loadTexture(String textureName)
-	{
-		Texture texture = new Texture(textureName);
-		texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
-		textures.put(textureName, texture);
-//		texture.setWrap(TextureWrap.Repeat, TextureWrap.Repeat);//TODO temp. Rather do a callback hook so you can do something to the texture based on name
-		texture.setWrap(TextureWrap.ClampToEdge, TextureWrap.ClampToEdge);//TODO temp. Rather do a callback hook so you can do something to the texture based on name
-		return texture;
+	private static ITexture loadTexture(String textureName) {
+		ITexture result = null;
+		
+		for(IAtlasBuilder atlasBuilder : textureAtlases) {
+			if(atlasBuilder.contains(textureName)) {
+				result = AtlasStore.getAtlas(atlasBuilder).getTexture(textureName);
+				if(result != null) {
+//					System.out.println("Using "+textureName+" from atlas!");
+					break;
+				}
+			}
+		}
+		
+		if(result == null) {
+//			System.out.println(textureName+" RAW");
+			Texture texture = new Texture(textureName);
+			managedTextures.add(texture);
+			texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
+			texture.setWrap(TextureWrap.ClampToEdge, TextureWrap.ClampToEdge);//TODO temp. Rather do a callback hook so you can do something to the texture based on name
+			result = new SingleTextureWrapper(texture);
+		}
+		
+		textures.put(textureName, result);
+		return result;
 	}
 	
 	private static NinePatch loadNinePatch(NinePatchDefinition definition)
 	{
-		NinePatch ninePatch = new NinePatch(getTexture(definition.textureName),definition.left,definition.right,definition.top,definition.bottom);
+		NinePatch ninePatch = getTexture(definition.textureName).newNinepatch(definition.left,definition.right,definition.top,definition.bottom);
 		ninepatches.put(definition, ninePatch);
 		return ninePatch;
 	}
 	
 	public static void reloadGraphics()
 	{
-		for(String textureName : textures.keySet())
-		{
-			Texture current = textures.get(textureName);
-			if(current != null)
-			{
-				current.dispose();
-			}
+		for(Texture texture : managedTextures) {
+			texture.dispose();
+		}
+		managedTextures.clear();
+		for(String textureName : textures.keySet()) {
 			textures.put(textureName, loadTexture(textureName));
 		}
 		for(String fontName : fonts.keySet())
@@ -116,13 +139,11 @@ public class TextureStore {
 	
 	public static void disposeGraphics()
 	{
-		for(String textureName : textures.keySet())
-		{
-			Texture current = textures.get(textureName);
-			if(current != null)
-			{
-				current.dispose();
-			}
+		for(Texture texture : managedTextures) {
+			texture.dispose();
+		}
+		managedTextures.clear();
+		for(String textureName : textures.keySet()) {
 			textures.put(textureName, null);
 		}
 		for(String fontName : fonts.keySet())
@@ -183,6 +204,58 @@ public class TextureStore {
 					&& this.right == obj.right
 					&& this.top == obj.top
 					&& this.bottom == obj.bottom;
+		}
+	}
+	
+	private static class SingleTextureWrapper implements ITexture {
+		private final Texture texture;
+		
+		public SingleTextureWrapper(Texture texture) {
+			this.texture = texture;
+		}
+
+		@Override
+		public int getWidth() {
+			return texture.getWidth();
+		}
+
+		@Override
+		public int getHeight() {
+			return texture.getHeight();
+		}
+		
+		@Override
+		public NinePatch newNinepatch(int left, int right, int top, int bottom) {
+			return new NinePatch(texture, left, right, top, bottom);
+		}
+
+		@Override
+		public void setWrap(TextureWrap xWrap, TextureWrap yWrap) {
+			if(texture.getUWrap() != xWrap || texture.getVWrap() != yWrap) {
+				texture.setWrap(xWrap, yWrap);
+			}
+		}
+
+		@Override
+		public void draw(SpriteBatch spriteBatch, float x, float y, float width, float height) {
+			spriteBatch.draw(texture, x, y, width, height);
+		}
+
+		@Override
+		public void draw(SpriteBatch spriteBatch, float x, float y, float width, float height, int srcX, int srcY,
+				int srcWidth, int srcHeight, boolean flipX, boolean flipY) {
+			spriteBatch.draw(texture, x, y, width, height, srcX, srcY, srcWidth, srcHeight, flipX, flipY); 
+		}
+
+		@Override
+		public void draw(SpriteBatch spriteBatch, float x, float y) {
+			spriteBatch.draw(texture, x, y);
+		}
+
+		@Override
+		public void draw(SpriteBatch spriteBatch, float x, float y, float width, float height, float u, float v,
+				float u2, float v2) {
+			spriteBatch.draw(texture, x, y, width, height, u, v, u2, v2);
 		}
 	}
 }
