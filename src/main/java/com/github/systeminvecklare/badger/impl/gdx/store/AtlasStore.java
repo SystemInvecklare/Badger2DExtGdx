@@ -13,6 +13,9 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.github.systeminvecklare.badger.core.math.Mathf;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
+import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasBuilder;
+import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasConstruction;
+import com.github.systeminvecklare.badger.impl.gdx.store.atlas.ITextureAtlas;
 
 public class AtlasStore {
 	private static final TextureWrap DEFAULT_WRAP = TextureWrap.ClampToEdge;
@@ -43,9 +46,25 @@ public class AtlasStore {
 		return atlasStore.getItem(atlasBuilder).texture;
 	}
 	
+	private static Texture getOverflowAtlas(TextureAtlas atlas, int overflowDepth) {
+		if(atlas == null) {
+			return null;
+		}
+		if(overflowDepth > 0) {
+			return getOverflowAtlas(atlas.overflowAtlas, overflowDepth - 1);
+		} else {
+			return atlas.texture;
+		}
+	}
+	
+	public static Texture getAtlasDebugTextureIfExists(IAtlasBuilder atlasBuilder, int overflowDepth) {
+		return getOverflowAtlas(atlasStore.getItem(atlasBuilder), overflowDepth);
+	}
+	
 	private static class TextureAtlas implements ITextureAtlas {
 		private final Texture texture;
 		private final Map<String, PackedTexture> regions = new HashMap<String, PackedTexture>();
+		private TextureAtlas overflowAtlas = null;
 
 		public TextureAtlas(IAtlasBuilder builder) {
 			this.texture = new Texture(builder.getAltasWidth(), builder.getAltasHeight(), Format.RGBA8888);
@@ -70,15 +89,33 @@ public class AtlasStore {
 					}
 					regions.put(name, new PackedTexture(texture, x + padding, y + padding, pixmap.getWidth(), pixmap.getHeight()));
 				}
+
+				@Override
+				public void setOverflowAtlas(IAtlasBuilder overflowAtlasBuilder) {
+					if(overflowAtlas != null) {
+						overflowAtlas.dispose();
+					}
+					overflowAtlas = new TextureAtlas(overflowAtlasBuilder);
+				}
 			});
 		}
 
 		public void dispose() {
 			texture.dispose();
+			if(overflowAtlas != null) {
+				overflowAtlas.dispose();
+				overflowAtlas = null;
+			}
 		}
 
 		@Override
 		public ITexture getTexture(String texture) {
+			if(overflowAtlas != null) {
+				ITexture found = overflowAtlas.getTexture(texture);
+				if(found != null) {
+					return found;
+				}
+			}
 			return regions.get(texture);
 		}
 	}

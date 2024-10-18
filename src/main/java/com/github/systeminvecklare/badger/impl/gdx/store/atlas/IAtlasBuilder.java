@@ -1,4 +1,4 @@
-package com.github.systeminvecklare.badger.impl.gdx.store;
+package com.github.systeminvecklare.badger.impl.gdx.store.atlas;
 
 public interface IAtlasBuilder {
 	void build(IAtlasConstruction construction);

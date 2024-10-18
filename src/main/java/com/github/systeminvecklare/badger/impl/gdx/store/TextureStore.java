@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
+import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasBuilder;
 
 public class TextureStore {
 	static {
