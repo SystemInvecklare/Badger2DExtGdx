@@ -1,13 +1,13 @@
 package com.github.systeminvecklare.badger.impl.gdx;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.util.GeometryUtil;
+import com.github.systeminvecklare.badger.impl.gdx.store.ITexture;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class BitmapGraphics implements IMovieClipLayer {
@@ -53,12 +53,12 @@ public class BitmapGraphics implements IMovieClipLayer {
 		SpriteBatch spriteBatch = ((GdxDrawCycle) drawCycle).getSpriteBatch();
 		((GdxDrawCycle) drawCycle).updateSpriteBatchTransform();
 		spriteBatch.setColor(getTint());
-		Texture texture = TextureStore.getTexture(textureName);
+		ITexture texture = TextureStore.getTexture(textureName);
 		texture.setWrap(xWrap, yWrap);
 		
 		float theWidth = getWidth();
 		float theHeight = getHeight();
-		spriteBatch.draw(texture, -getCenterX(), -getCenterY(), theWidth, theHeight);
+		texture.draw(spriteBatch, -getCenterX(), -getCenterY(), theWidth, theHeight);
 	}
 	
 	public Color getTint() {
@@ -66,7 +66,7 @@ public class BitmapGraphics implements IMovieClipLayer {
 	}
 
 	public float getHeight() {
-		Texture texture = TextureStore.getTexture(textureName);
+		ITexture texture = TextureStore.getTexture(textureName);
 		float theHeight;
 		if(width == null && height == null)
 		{
@@ -88,7 +88,7 @@ public class BitmapGraphics implements IMovieClipLayer {
 	}
 
 	public float getWidth() {
-		Texture texture = TextureStore.getTexture(textureName);
+		ITexture texture = TextureStore.getTexture(textureName);
 		float theWidth;
 		if(width == null && height == null)
 		{

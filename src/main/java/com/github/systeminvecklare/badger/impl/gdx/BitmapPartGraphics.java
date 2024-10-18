@@ -1,12 +1,12 @@
 package com.github.systeminvecklare.badger.impl.gdx;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
+import com.github.systeminvecklare.badger.impl.gdx.store.ITexture;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class BitmapPartGraphics implements IMovieClipLayer {
@@ -75,9 +75,9 @@ public class BitmapPartGraphics implements IMovieClipLayer {
 		SpriteBatch spriteBatch = ((GdxDrawCycle) drawCycle).getSpriteBatch();
 		((GdxDrawCycle) drawCycle).updateSpriteBatchTransform();
 		spriteBatch.setColor(tint);
-		Texture texture = TextureStore.getTexture(textureName);
+		ITexture texture = TextureStore.getTexture(textureName);
 		texture.setWrap(xWrap, yWrap);
-		spriteBatch.draw(texture, -centerX, -centerY, width, height, srcX, srcY, srcWidth, srcHeight, getFlipX(), getFlipY());
+		texture.draw(spriteBatch, -centerX, -centerY, width, height, srcX, srcY, srcWidth, srcHeight, getFlipX(), getFlipY());
 	}
 	
 	public boolean getFlipY() {

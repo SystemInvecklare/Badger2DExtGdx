@@ -1,8 +1,11 @@
 package com.github.systeminvecklare.badger.impl.gdx;
 
+import java.util.Arrays;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.math.Matrix4;
 import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.shader.IShader;
@@ -12,7 +15,9 @@ import com.github.systeminvecklare.badger.impl.gdx.vectorgraphics.IGdxVectorDraw
 
 public class GdxDrawCycle implements IDrawCycle {
 	private ITransform transform = FlashyEngine.get().getPoolManager().getPool(ITransform.class).obtain().setToIdentity();
+	private final float[] lastBoundTransform = new float[16];
 	private IShader shader;
+	private IShader lastBoundShader;
 	private SpriteBatch spriteBatch = new SpriteBatch() {
 		protected void setupMatrices() {
 			if(ShaderProgram.pedantic) {
@@ -42,9 +47,11 @@ public class GdxDrawCycle implements IDrawCycle {
 	public GdxDrawCycle reset()
 	{
 		transform.setToIdentity();//.setPosition(new Position(null).setTo(0, SceneManager.get().getHeightSource().getFromSource())).setScale(new Vector(null).setTo(1, -1));
+		Arrays.fill(lastBoundTransform, 0f);
 		spriteBatch.getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		spriteBatch.begin();
 		shader = null;
+		lastBoundShader = null;
 		spriteBatch.setShader(null);
 		return this;
 	}
@@ -57,16 +64,21 @@ public class GdxDrawCycle implements IDrawCycle {
 	public void setShader(IShader shader) {
 		this.shader = shader;
 	}
+	
 
 	public void updateSpriteBatchTransform() {
-		spriteBatch.setTransformMatrix(((GdxTransform) transform).getMatrix4());
-		if(shader != null)
-		{
-			shader.onBind(this);
+		Matrix4 gdxMatrix = ((GdxTransform) transform).getMatrix4();
+		if(!Arrays.equals(lastBoundTransform, gdxMatrix.val)) {
+			spriteBatch.setTransformMatrix(gdxMatrix);
+			System.arraycopy(gdxMatrix.val, 0, lastBoundTransform, 0, 16);
 		}
-		else
-		{
-			spriteBatch.setShader(null);
+		if(shader != lastBoundShader) {
+			if(shader != null) {
+				shader.onBind(this);
+			} else {
+				spriteBatch.setShader(null);
+			}
+			lastBoundShader = shader;
 		}
 	}
 

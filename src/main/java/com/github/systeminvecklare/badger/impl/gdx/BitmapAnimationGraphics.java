@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation.PlayMode;
 import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
@@ -12,6 +11,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.core.ISource;
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.pooling.IPool;
+import com.github.systeminvecklare.badger.impl.gdx.store.ITexture;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class BitmapAnimationGraphics implements IMovieClipLayer {
@@ -53,7 +53,7 @@ public class BitmapAnimationGraphics implements IMovieClipLayer {
 	@Override
 	public void init() {
 		frames = arrayListpool.obtain();
-		Texture texture = TextureStore.getTexture(textureName);
+		ITexture texture = TextureStore.getTexture(textureName);
 		
 		int srcWidth = texture.getWidth()/tilesX;
 		int srcHeight = texture.getHeight()/tilesY;
