@@ -1,6 +1,7 @@
 package com.github.systeminvecklare.badger.impl.gdx.store;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /*package-protected*/ abstract class AbstractStore<K, T> implements IStore {
@@ -39,5 +40,10 @@ import java.util.Map;
 			}
 			items.put(itemName, null);
 		}
+	}
+
+	@Override
+	public List<IStore> getDependencies(List<IStore> result) {
+		return result;
 	}
 }

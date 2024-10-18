@@ -32,7 +32,9 @@ import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
 
 public class FlashyGdxEngine implements IFlashyEngine {
 	private FlashyPoolManager poolManager;
-	private List<IStore> stores = new ArrayList<IStore>();
+	private List<IStore> stores = new ArrayList<IStore>(0);
+	private boolean regeristingStore = false;
+	private List<IStore> queuedStores = new ArrayList<IStore>(0);
 	
 	public FlashyGdxEngine() {
 		this.poolManager = new FlashyPoolManager()
@@ -126,7 +128,30 @@ public class FlashyGdxEngine implements IFlashyEngine {
 	}
 	
 	public void registerStore(IStore store) {
-		stores.add(store);
+		if(regeristingStore) {
+			queuedStores.add(store);
+		} else {
+			regeristingStore = true;
+			List<IStore> depencencies = new ArrayList<IStore>();
+			int insertIndex = stores.size();
+			for(int i = 0; i < stores.size(); ++i) {
+				IStore existingStore = stores.get(i);
+				depencencies.clear();
+				if(existingStore.getDependencies(depencencies).contains(store)) {
+					insertIndex = i;
+					break;
+				}
+			}
+			stores.add(insertIndex, store);
+			regeristingStore = false;
+			if(!queuedStores.isEmpty()) {
+				List<IStore> harvestedQueued = new ArrayList<IStore>(queuedStores);
+				queuedStores.clear();
+				for(IStore queued : harvestedQueued) {
+					registerStore(queued);
+				}
+			}
+		}
 	}
 	
 	public void reloadStoreInventories() {

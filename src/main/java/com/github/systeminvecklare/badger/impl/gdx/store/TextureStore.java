@@ -10,9 +10,11 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.BitmapFont.BitmapFontData;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.Array;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 
 public class TextureStore {
@@ -26,6 +28,12 @@ public class TextureStore {
 			@Override
 			public void disposeInventory() {
 				disposeGraphics();
+			}
+			
+			@Override
+			public List<IStore> getDependencies(List<IStore> result) {
+				result.add(AtlasStore.atlasStore);
+				return result;
 			}
 		});
 	}
@@ -67,10 +75,12 @@ public class TextureStore {
 	}
 	
 	private static BitmapFont loadFont(String fontName) {
-//		BitmapFont font = new BitmapFont(Gdx.files.internal(fontName+".fnt"), Gdx.files.internal(fontName+"_0.png"), false);
-		TextureRegion texture = new TextureRegion(new Texture(Gdx.files.internal(fontName+"_0.png")));
-		texture.getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
-		BitmapFont font = new BitmapFont(Gdx.files.internal(fontName+".fnt"), texture, false);
+		BitmapFontData bitmapFontData = new BitmapFontData(Gdx.files.internal(fontName+".fnt"), false);
+		Array<TextureRegion> pageRegions = new Array<TextureRegion>(bitmapFontData.imagePaths.length);
+		for(String imagePath : bitmapFontData.imagePaths) {
+			pageRegions.add(getTexture(imagePath).asTextureRegion());
+		}
+		BitmapFont font = new BitmapFont(bitmapFontData, pageRegions, true);
 		fonts.put(fontName, font);
 		return font;
 	}
@@ -108,8 +118,7 @@ public class TextureStore {
 		return ninePatch;
 	}
 	
-	public static void reloadGraphics()
-	{
+	public static void reloadGraphics() {
 		for(Texture texture : managedTextures) {
 			texture.dispose();
 		}
@@ -117,22 +126,10 @@ public class TextureStore {
 		for(String textureName : textures.keySet()) {
 			textures.put(textureName, loadTexture(textureName));
 		}
-		for(String fontName : fonts.keySet())
-		{
-			BitmapFont current = fonts.get(fontName);
-			if(current != null)
-			{
-				current.dispose();
-			}
+		for(String fontName : fonts.keySet()) {
 			fonts.put(fontName, loadFont(fontName));
 		}
-		for(NinePatchDefinition ninepatchDef : ninepatches.keySet())
-		{
-			NinePatch current = ninepatches.get(ninepatchDef);
-			if(current != null)
-			{
-				//Ninepatches doesn't need to be disposed
-			}
+		for(NinePatchDefinition ninepatchDef : ninepatches.keySet()) {
 			ninepatches.put(ninepatchDef, loadNinePatch(ninepatchDef));
 		}
 	}
@@ -256,6 +253,11 @@ public class TextureStore {
 		public void draw(SpriteBatch spriteBatch, float x, float y, float width, float height, float u, float v,
 				float u2, float v2) {
 			spriteBatch.draw(texture, x, y, width, height, u, v, u2, v2);
+		}
+
+		@Override
+		public TextureRegion asTextureRegion() {
+			return new TextureRegion(texture);
 		}
 	}
 }

@@ -19,7 +19,7 @@ public class AtlasStore {
 	
 	private static final SharedUtils SHARED_UTILS = new SharedUtils();
 	
-	private static AbstractStore<IAtlasBuilder, TextureAtlas> atlasStore = new AbstractStore<IAtlasBuilder, TextureAtlas>() {
+	/*package-protected*/ static AbstractStore<IAtlasBuilder, TextureAtlas> atlasStore = new AbstractStore<IAtlasBuilder, TextureAtlas>() {
 		@Override
 		protected TextureAtlas loadItem(IAtlasBuilder itemName) {
 			return new TextureAtlas(itemName);
@@ -166,6 +166,11 @@ public class AtlasStore {
 			} finally {
 				SHARED_UTILS.free();
 			}
+		}
+
+		@Override
+		public TextureRegion asTextureRegion() {
+			return region;
 		}
 	}
 	

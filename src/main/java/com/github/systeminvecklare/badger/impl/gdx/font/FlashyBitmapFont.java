@@ -14,6 +14,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCyc
 import com.github.systeminvecklare.badger.core.util.FloatRectangle;
 import com.github.systeminvecklare.badger.core.util.IFloatRectangle;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
+import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class FlashyBitmapFont implements IFlashyFont<Color> {
 	private final LazyBitmapFont fontHolder;
@@ -158,16 +159,16 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 	private static class LazyBitmapFont {
 		private BitmapFont font = null;
 		private final FileHandle fileHandle;
+		
 		public LazyBitmapFont(FileHandle fileHandle) {
 			this.fileHandle = fileHandle;
 		}
 		
 		public BitmapFont getFont() {
-			if(font == null) {
-				//TODO This should probably use TextureStore and getBitmapFont(fontName)?
-				font = new BitmapFont(fileHandle);
+			if(font != null) {
+				return font;
 			}
-			return font;
+			return TextureStore.getBitmapFont(fileHandle.pathWithoutExtension());
 		}
 	}
 	

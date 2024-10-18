@@ -1,7 +1,10 @@
 package com.github.systeminvecklare.badger.impl.gdx.util;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.layer.ILayer;
@@ -17,12 +20,24 @@ import com.github.systeminvecklare.badger.impl.gdx.store.AtlasStore;
 import com.github.systeminvecklare.badger.impl.gdx.store.IAtlasBuilder;
 
 public class AtlasDebugScene extends Scene {
+	private final Texture texture = new Texture(1, 1, Format.RGB888);
+	
 	public AtlasDebugScene(IAtlasBuilder atlasBuilder) {
 		ILayer layer = addLayer("test", new ScaledLayer());
 		IMovieClip clip = new MovieClip();
 		clip.addBehavior(new DragBehavior());
 		clip.addGraphics(new AtlasGraphics(atlasBuilder));
 		layer.addMovieClip(clip);
+	}
+	
+	@Override
+	public void draw(IDrawCycle drawCycle) {
+		if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
+			GdxDrawCycle gdxDrawCycle = ((GdxDrawCycle) drawCycle);
+			gdxDrawCycle.updateSpriteBatchTransform();
+			gdxDrawCycle.getSpriteBatch().draw(texture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		}
+		super.draw(drawCycle);
 	}
 	
 	private static class AtlasGraphics implements IMovieClipLayer {
