@@ -7,6 +7,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCyc
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.util.GeometryUtil;
+import com.github.systeminvecklare.badger.core.widget.IWidgetInterface;
 import com.github.systeminvecklare.badger.impl.gdx.store.ITexture;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
@@ -180,4 +181,36 @@ public class BitmapGraphics implements IMovieClipLayer {
 		hittable = true;
 		return this;
 	}
+	
+	public static final IWidgetInterface<BitmapGraphics> WIDGET_INTERFACE = new IWidgetInterface<BitmapGraphics>() {
+		@Override
+		public int getX(BitmapGraphics rectangle) {
+			return (int) -rectangle.getCenterX();
+		}
+
+		@Override
+		public int getY(BitmapGraphics rectangle) {
+			return (int) -rectangle.getCenterY();
+		}
+
+		@Override
+		public int getWidth(BitmapGraphics rectangle) {
+			return (int) rectangle.getWidth();
+		}
+
+		@Override
+		public int getHeight(BitmapGraphics rectangle) {
+			return (int) rectangle.getHeight();
+		}
+
+		@Override
+		public void setPosition(BitmapGraphics widget, int x, int y) {
+			widget.setCenter(-x, -y);
+		}
+
+		@Override
+		public void addToPosition(BitmapGraphics widget, int dx, int dy) {
+			widget.setCenter(widget.getCenterX()-dx, widget.getCenterY()-dy);
+		}
+	};
 }
