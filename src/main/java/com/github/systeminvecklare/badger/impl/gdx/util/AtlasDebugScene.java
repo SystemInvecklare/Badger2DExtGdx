@@ -68,7 +68,6 @@ public class AtlasDebugScene extends Scene {
 			((GdxDrawCycle) drawCycle).updateSpriteBatchTransform();
 			spriteBatch.setColor(Color.WHITE);
 			Texture texture = AtlasStore.getAtlasDebugTextureIfExists(atlasBuilder, overflowDepth);
-			System.out.println(overflowDepth);
 			if(texture != null) {
 				spriteBatch.draw(texture, 0, SceneManager.get().getHeight() - texture.getHeight(), texture.getWidth(), texture.getHeight());
 			} else {
