@@ -37,9 +37,10 @@ public class GdxShaderGraphics implements IMovieClipLayer {
 	@Override
 	public void draw(IDrawCycle drawCycle) {
 		GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
+		drawCycle.setShader(shader);
 		gdxDrawCycle.updateSpriteBatchTransform();
-		shader.onBind(drawCycle);
 		gdxDrawCycle.getSpriteBatch().draw(getTexture(), 0, 0, getWidth(), getHeight());
+		drawCycle.setShader(null);
 	}
 	
 	public Texture getTexture() {
