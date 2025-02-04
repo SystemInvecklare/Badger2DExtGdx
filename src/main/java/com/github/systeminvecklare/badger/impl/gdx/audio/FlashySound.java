@@ -3,9 +3,11 @@ package com.github.systeminvecklare.badger.impl.gdx.audio;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 
 public class FlashySound implements IFlashySound {
+	private final String soundName;
 	private IFlashySoundDelegate delegate;
 
 	public FlashySound(String soundName) {
+		this.soundName = soundName;
 		this.delegate = FlashyGdxEngine.get().newFlashySoundDelegate(this,soundName);
 	}
 
@@ -156,5 +158,10 @@ public class FlashySound implements IFlashySound {
 	 */
 	public void setPan(long soundId, float pan, float volume) {
 		delegate.setPan(soundId, pan, volume);
+	}
+	
+	@Override
+	public String toString() {
+		return soundName;
 	}
 }
