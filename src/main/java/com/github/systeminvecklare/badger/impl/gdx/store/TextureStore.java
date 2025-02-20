@@ -260,5 +260,10 @@ public class TextureStore {
 		public TextureRegion asTextureRegion() {
 			return new TextureRegion(texture);
 		}
+
+		@Override
+		public ITexture createSubTexture(int x, int y, int width, int height) {
+			return new AtlasStore.PackedTexture(texture, x, y, width, height);
+		}
 	}
 }

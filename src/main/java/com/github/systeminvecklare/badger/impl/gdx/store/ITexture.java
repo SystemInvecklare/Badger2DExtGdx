@@ -16,4 +16,6 @@ public interface ITexture {
 	void draw(SpriteBatch spriteBatch, float x, float y, float width, float height, int srcX, int srcY, int srcWidth,
 			int srcHeight, boolean flipX, boolean flipY);
 	void draw(SpriteBatch spriteBatch, float x, float y, float width, float height, float u, float v, float u2, float v2);
+	
+	ITexture createSubTexture(int x, int y, int width, int height);
 }

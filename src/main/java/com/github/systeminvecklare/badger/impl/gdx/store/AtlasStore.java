@@ -120,13 +120,17 @@ public class AtlasStore {
 		}
 	}
 	
-	private static class PackedTexture implements ITexture {
+	/*package-protected*/ static class PackedTexture implements ITexture {
 		private final TextureRegion region;
 		private TextureWrap xWrap = DEFAULT_WRAP;
 		private TextureWrap yWrap = DEFAULT_WRAP;
 
 		public PackedTexture(Texture texture, int x, int y, int width, int height) {
-			this.region = new TextureRegion(texture, x, y, width, height);
+			this(new TextureRegion(texture, x, y, width, height));
+		}
+		
+		private PackedTexture(TextureRegion region) {
+			this.region = region;
 		}
 
 		@Override
@@ -208,6 +212,16 @@ public class AtlasStore {
 		@Override
 		public TextureRegion asTextureRegion() {
 			return region;
+		}
+		
+		@Override
+		public ITexture createSubTexture(int x, int y, int width, int height) {
+			if(x < 0 || y < 0 || x + width > region.getRegionWidth() || y + height > region.getRegionHeight()) {
+				throw new IllegalArgumentException("Invalid subtexture region (x,y,width,height) == ("+x+","+y+","+width+","+height+") for region of size "+region.getRegionWidth()+" x "+region.getRegionHeight()+".");
+			}
+			TextureRegion subRegion = new TextureRegion(region);
+			subRegion.setRegion(region.getRegionX()+x, region.getRegionY()+y, width, height);
+			return new PackedTexture(subRegion);
 		}
 	}
 	
