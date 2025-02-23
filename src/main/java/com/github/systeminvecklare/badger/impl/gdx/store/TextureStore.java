@@ -171,40 +171,6 @@ public class TextureStore {
 		}
 	}
 	
-	public static class NinePatchDefinition {
-		private String textureName;
-		private int left;
-		private int right;
-		private int top;
-		private int bottom;
-
-		public NinePatchDefinition(String textureName, int left, int right, int top, int bottom) {
-			this.textureName = textureName;
-			this.left = left;
-			this.right = right;
-			this.top = top;
-			this.bottom = bottom;
-		}
-		
-		@Override
-		public int hashCode() {
-			return textureName.hashCode() ^ top ^ bottom ^ left ^ right;
-		}
-		
-		@Override
-		public boolean equals(Object obj) {
-			return (obj instanceof NinePatchDefinition) && equalsOwn((NinePatchDefinition) obj);
-		}
-
-		private boolean equalsOwn(NinePatchDefinition obj) {
-			return this.textureName.equals(obj.textureName)
-					&& this.left == obj.left
-					&& this.right == obj.right
-					&& this.top == obj.top
-					&& this.bottom == obj.bottom;
-		}
-	}
-	
 	private static class SingleTextureWrapper implements ITexture {
 		private final Texture texture;
 		
