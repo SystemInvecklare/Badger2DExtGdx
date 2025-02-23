@@ -97,4 +97,17 @@ public class ColorUtil {
 		}
 		return result;
 	}
+	
+	public static Color hueShiftNormalized(Color color, float amount, Color result) {
+		return hueShiftDegrees(color, amount*360, result);
+	}
+	
+	public static Color hueShiftDegrees(Color color, float degrees, Color result) {
+		float[] hsv = new float[3];
+		color.toHsv(hsv);
+		hsv[0] = Mathf.mod(hsv[0] + degrees, 360);
+		result.fromHsv(hsv);
+		result.a = color.a;
+		return result;
+	}
 }
