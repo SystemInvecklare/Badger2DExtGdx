@@ -1,5 +1,8 @@
 package com.github.systeminvecklare.badger.impl.gdx.font;
 
+import java.util.List;
+import java.util.function.Supplier;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
@@ -8,8 +11,10 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout.GlyphRun;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Align;
+import com.github.systeminvecklare.badger.core.font.EmbellishmentTextSegment;
 import com.github.systeminvecklare.badger.core.font.IFlashyFont;
 import com.github.systeminvecklare.badger.core.font.IFlashyText;
+import com.github.systeminvecklare.badger.core.font.TransformedFlashyText;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.util.FloatRectangle;
 import com.github.systeminvecklare.badger.core.util.IFloatRectangle;
@@ -213,6 +218,12 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 			gdxDrawCycle.updateSpriteBatchTransform();
 			SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
 			FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, x, y);
+		}
+		
+		@Override
+		public List<EmbellishmentTextSegment> getEmbellishments(List<EmbellishmentTextSegment> result,
+				Supplier<TransformedFlashyText> transfromedTextSupplier) {
+			return result;
 		}
 	}
 }
