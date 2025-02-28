@@ -7,6 +7,7 @@ import java.util.function.IntConsumer;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 
 public class AtlasBuilder implements IAtlasBuilder {
 	private static final Comparator<Sides> BIGGEST_MIN_SIDE_FIRST_COMPARATOR = new Comparator<Sides>() {
@@ -40,6 +41,8 @@ public class AtlasBuilder implements IAtlasBuilder {
 	private PreSorting preSorting = PreSorting.BIGGEST_MAX_SIDE_FIRST;
 	private IntConsumer tightnessConsumers = null;
 	private boolean allowOverflow = false;
+	private TextureFilter minFilter = TextureFilter.Linear;
+	private TextureFilter magFilter = TextureFilter.Linear;
 	
 	public AtlasBuilder(List<String> textures) {
 		this(2048, textures);
@@ -95,6 +98,16 @@ public class AtlasBuilder implements IAtlasBuilder {
 		return this;
 	}
 	
+	public AtlasBuilder minFilter(TextureFilter textureFilter) {
+		this.minFilter = textureFilter;
+		return this;
+	}
+	
+	public AtlasBuilder magFilter(TextureFilter textureFilter) {
+		this.magFilter = textureFilter;
+		return this;
+	}
+	
 	public AtlasBuilder collectTightness(IntConsumer tightnessConsumer) {
 		if(this.tightnessConsumers == null) {
 			this.tightnessConsumers = tightnessConsumer;
@@ -107,6 +120,16 @@ public class AtlasBuilder implements IAtlasBuilder {
 			this.tightnessConsumers = consumerList;
 		}
 		return this;
+	}
+	
+	@Override
+	public TextureFilter getMinFilter() {
+		return minFilter;
+	}
+	
+	@Override
+	public TextureFilter getMagFilter() {
+		return magFilter;
 	}
 
 	@Override

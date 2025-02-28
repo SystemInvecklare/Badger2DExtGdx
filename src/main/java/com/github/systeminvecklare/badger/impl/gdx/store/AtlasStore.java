@@ -6,7 +6,6 @@ import java.util.Map;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -68,7 +67,7 @@ public class AtlasStore {
 
 		public TextureAtlas(IAtlasBuilder builder) {
 			this.texture = new Texture(builder.getAltasWidth(), builder.getAltasHeight(), Format.RGBA8888);
-			this.texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
+			this.texture.setFilter(builder.getMinFilter(), builder.getMagFilter());
 			this.texture.setWrap(DEFAULT_WRAP, DEFAULT_WRAP);
 			builder.build(new IAtlasConstruction() {
 				@Override
