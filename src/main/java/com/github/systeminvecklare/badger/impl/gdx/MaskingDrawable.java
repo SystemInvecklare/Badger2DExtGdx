@@ -42,10 +42,12 @@ public class MaskingDrawable implements IDrawable {
 		}
 		GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
 		gdxDrawCycle.getSpriteBatch().flush();
-		ScissorStack.pushScissors(scissor);
-		wrapped.draw(drawCycle);
-		gdxDrawCycle.getSpriteBatch().flush();
-		ScissorStack.popScissors();
+		boolean pushed = ScissorStack.pushScissors(scissor);
+		if(pushed) {
+			wrapped.draw(drawCycle);
+			gdxDrawCycle.getSpriteBatch().flush();
+			ScissorStack.popScissors();
+		}
 	}
 	
 	private static float max4(float a, float b, float c, float d) {

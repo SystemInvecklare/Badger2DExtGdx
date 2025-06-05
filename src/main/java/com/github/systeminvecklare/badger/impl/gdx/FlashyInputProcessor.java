@@ -1,5 +1,7 @@
 package com.github.systeminvecklare.badger.impl.gdx;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.github.systeminvecklare.badger.core.graphics.framework.engine.inputprocessor.IInputHandler;
 
@@ -23,7 +25,7 @@ public class FlashyInputProcessor implements InputProcessor {
 
 	@Override
 	public boolean keyTyped(char character) {
-		return false;
+		return handler.registerKeyTyped(character);
 	}
 
 	@Override
@@ -48,6 +50,6 @@ public class FlashyInputProcessor implements InputProcessor {
 
 	@Override
 	public boolean scrolled(float amountX, float amountY) {
-		return false;
+		return handler.registerScrolled(Gdx.input.getX(), Gdx.input.getY(), amountX, amountY);
 	}
 }
