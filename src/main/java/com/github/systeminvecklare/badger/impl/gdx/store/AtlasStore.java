@@ -119,10 +119,101 @@ public class AtlasStore {
 		}
 	}
 	
+	private static class TextureRegionKey {
+		private float xTex1;
+		private float xTex2;
+		private float yTex1;
+		private float yTex2;
+		
+		public void set(DimensionRangedDraw xRange, DimensionRangedDraw yRange) {
+			this.xTex1 = xRange.tex1;
+			this.xTex2 = xRange.tex2;
+			this.yTex1 = yRange.tex1;
+			this.yTex2 = yRange.tex2;
+		}
+		
+		public TextureRegionKey copy() {
+			TextureRegionKey copied = new TextureRegionKey();
+			copied.xTex1 = this.xTex1;
+			copied.xTex2 = this.xTex2;
+			copied.yTex1 = this.yTex1;
+			copied.yTex2 = this.yTex2;
+			return copied;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + Float.floatToIntBits(xTex1);
+			result = prime * result + Float.floatToIntBits(xTex2);
+			result = prime * result + Float.floatToIntBits(yTex1);
+			result = prime * result + Float.floatToIntBits(yTex2);
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			TextureRegionKey other = (TextureRegionKey) obj;
+			if (Float.floatToIntBits(xTex1) != Float.floatToIntBits(other.xTex1))
+				return false;
+			if (Float.floatToIntBits(xTex2) != Float.floatToIntBits(other.xTex2))
+				return false;
+			if (Float.floatToIntBits(yTex1) != Float.floatToIntBits(other.yTex1))
+				return false;
+			if (Float.floatToIntBits(yTex2) != Float.floatToIntBits(other.yTex2))
+				return false;
+			return true;
+		}
+	}
+	
+	private static abstract class Cache<K, V> {
+		private static final int MAX_SIZE = 10;
+		
+		private Map<K, V> cached = new HashMap<K, V>();
+		
+		public V get(K key) {
+			V value = cached.get(key);
+			if(value == null) {
+				value = calculate(key);
+				if(cached.size() < MAX_SIZE) {
+					cached.put(snapshot(key), value);
+				}
+			}
+			return value;
+		}
+		protected K snapshot(K key) {
+			return key;
+		}
+		
+		protected abstract V calculate(K key);
+	}
+	
 	/*package-protected*/ static class PackedTexture implements ITexture {
 		private final TextureRegion region;
 		private TextureWrap xWrap = DEFAULT_WRAP;
 		private TextureWrap yWrap = DEFAULT_WRAP;
+		
+		private final Cache<TextureRegionKey, TextureRegion> cache = new Cache<AtlasStore.TextureRegionKey, TextureRegion>() {
+			@Override
+			protected TextureRegion calculate(TextureRegionKey key) {
+				float subU = Mathf.lerp(key.xTex1, region.getU(), region.getU2());
+				float subU2 = Mathf.lerp(key.xTex2, region.getU(), region.getU2());
+				float subV = Mathf.lerp(key.yTex1, region.getV(), region.getV2());
+				float subV2 = Mathf.lerp(key.yTex2, region.getV(), region.getV2());
+				return new TextureRegion(region.getTexture(), subU, subV2, subU2, subV);
+			}
+			
+			protected TextureRegionKey snapshot(TextureRegionKey key) {
+				return key.copy();
+			}
+		};
 
 		public PackedTexture(Texture texture, int x, int y, int width, int height) {
 			this(new TextureRegion(texture, x, y, width, height));
@@ -188,19 +279,13 @@ public class AtlasStore {
 				WrapHelper.draw(x, width, u, u2, xWrap, region.getRegionWidth(), xRanger);
 				WrapHelper.draw(y, height, v, v2, yWrap, region.getRegionHeight(), yRanger);
 				
-				TextureRegion subRegion = SHARED_UTILS.utilRegion;
-				
 				for(int i = 0; i < xRanger.rangerLength; ++i) {
 					for(int j = 0; j < yRanger.rangerLength; ++j) {
 						DimensionRangedDraw xRange = xRanger.ranges[i];
 						DimensionRangedDraw yRange = yRanger.ranges[j];
-						float subU = Mathf.lerp(xRange.tex1, region.getU(), region.getU2());
-						float subU2 = Mathf.lerp(xRange.tex2, region.getU(), region.getU2());
-						float subV = Mathf.lerp(yRange.tex1, region.getV(), region.getV2());
-						float subV2 = Mathf.lerp(yRange.tex2, region.getV(), region.getV2());
-						subRegion.setTexture(region.getTexture());
-						subRegion.setRegion(subU, subV2, subU2, subV);
-						spriteBatch.draw(subRegion, xRange.start, yRange.start, xRange.length, yRange.length);
+						TextureRegionKey key = SHARED_UTILS.utilKey;
+						key.set(xRange, yRange);
+						spriteBatch.draw(cache.get(key), xRange.start, yRange.start, xRange.length, yRange.length);
 					}
 				}
 			} finally {
@@ -229,21 +314,58 @@ public class AtlasStore {
 		private float length;
 		private float tex1;
 		private float tex2;
-
+		
 		public void set(float start, float length, float tex1, float tex2) {
 			this.start = start;
 			this.length = length;
 			this.tex1 = tex1;
 			this.tex2 = tex2;
 		}
+		
+		public DimensionRangedDraw copy() {
+			DimensionRangedDraw copy = new DimensionRangedDraw();
+			copy.set(start, length, tex1, tex2);
+			return copy;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + Float.floatToIntBits(length);
+			result = prime * result + Float.floatToIntBits(start);
+			result = prime * result + Float.floatToIntBits(tex1);
+			result = prime * result + Float.floatToIntBits(tex2);
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			DimensionRangedDraw other = (DimensionRangedDraw) obj;
+			if (Float.floatToIntBits(length) != Float.floatToIntBits(other.length))
+				return false;
+			if (Float.floatToIntBits(start) != Float.floatToIntBits(other.start))
+				return false;
+			if (Float.floatToIntBits(tex1) != Float.floatToIntBits(other.tex1))
+				return false;
+			if (Float.floatToIntBits(tex2) != Float.floatToIntBits(other.tex2))
+				return false;
+			return true;
+		}
 	}
 	
 	private static class Ranger implements WrapHelper.IDrawSink {
-		private static final int MAX_POOL = 10;
+		private static final int MAX_POOL = 200;
 		
 		private int rangerLength = 0;
 		private DimensionRangedDraw[] ranges = new DimensionRangedDraw[0];
-
+		
 		@Override
 		public void draw(float start, float length, float tex1, float tex2) {
 			if(ranges.length <= rangerLength) {
@@ -283,6 +405,7 @@ public class AtlasStore {
 		private final Ranger xRanger = new Ranger();
 		private final Ranger yRanger = new Ranger();
 		private final TextureRegion utilRegion = new TextureRegion();
+		private final TextureRegionKey utilKey = new TextureRegionKey();
 		
 		public void claim() {
 			if(claimed) {
