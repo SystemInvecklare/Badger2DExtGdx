@@ -1,7 +1,13 @@
 package com.github.systeminvecklare.badger.impl.gdx;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Quaternion;
@@ -31,14 +37,87 @@ import com.github.systeminvecklare.badger.impl.gdx.audio.NonThreadedFlashySoundD
 import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
 
 public class FlashyGdxEngine implements IFlashyEngine {
-	private FlashyPoolManager poolManager;
+	private ThreadLocal<IPoolManager> poolManager = new ThreadLocal<IPoolManager>();
 	private List<IStore> stores = new ArrayList<IStore>(0);
 	private boolean regeristingStore = false;
 	private List<IStore> queuedStores = new ArrayList<IStore>(0);
 	
 	public FlashyGdxEngine() {
-		this.poolManager = new FlashyPoolManager()
-		{
+	}
+	
+	public void initPoolManagerOnThread() {
+		poolManager.set(newPoolManager());
+	}
+	
+	public void disposePoolManagerOnThread() {
+		poolManager.set(null);
+		poolManager.remove();
+	}
+	
+	public ExecutorService newSingleThreadExecutorWithPoolManager() {
+		return Executors.newSingleThreadExecutor(new ThreadFactory() {
+			@Override
+			public Thread newThread(final Runnable r) {
+				return Executors.defaultThreadFactory().newThread(new Runnable() {
+					@Override
+					public void run() {
+						FlashyGdxEngine.this.initPoolManagerOnThread();
+						try {
+							r.run();
+						} finally {
+							FlashyGdxEngine.this.disposePoolManagerOnThread();
+						}
+					}
+				});
+			}
+		});
+	}
+	
+	public static ExecutorService sameThreadExecutor() {
+		return new AbstractExecutorService() {
+			private boolean terminated = false;
+			
+			@Override
+			public void execute(Runnable command) {
+				if(!terminated) {
+					command.run();
+				}
+			}
+			
+			@Override
+			public List<Runnable> shutdownNow() {
+				return Collections.emptyList();
+			}
+			
+			@Override
+			public void shutdown() {
+				terminated = true;
+			}
+			
+			@Override
+			public boolean isTerminated() {
+				return terminated;
+			}
+			
+			@Override
+			public boolean isShutdown() {
+				return terminated;
+			}
+			
+			@Override
+			public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+				return true;
+			}
+		};
+	}
+
+	@Override
+	public IPoolManager getPoolManager() {
+		return poolManager.get();
+	}
+	
+	protected IPoolManager newPoolManager() {
+		FlashyPoolManager poolManager = new FlashyPoolManager() {
 			private IPool<ITransform> transformPool = new SimplePool<ITransform>(10,30) {
 				@Override
 				public ITransform newObject() {
@@ -86,10 +165,6 @@ public class FlashyGdxEngine implements IFlashyEngine {
 				return new Quaternion();
 			}
 		});
-	}
-
-	@Override
-	public IPoolManager getPoolManager() {
 		return poolManager;
 	}
 
