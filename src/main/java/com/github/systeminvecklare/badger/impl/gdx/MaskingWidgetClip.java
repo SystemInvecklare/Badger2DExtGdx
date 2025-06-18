@@ -4,6 +4,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCyc
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawable;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.NonInvertibleMatrixException;
+import com.github.systeminvecklare.badger.core.hover.IHoverMasking;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.math.Position;
 import com.github.systeminvecklare.badger.core.pooling.EasyPooler;
@@ -11,7 +12,7 @@ import com.github.systeminvecklare.badger.core.util.GeometryUtil;
 import com.github.systeminvecklare.badger.core.widget.RectangleUtil;
 import com.github.systeminvecklare.badger.core.widget.WidgetClip;
 
-public class MaskingWidgetClip extends WidgetClip {
+public class MaskingWidgetClip extends WidgetClip implements IHoverMasking {
 	private final MaskingDrawable masker;
 
 	public MaskingWidgetClip(int width, int height) {
@@ -58,5 +59,18 @@ public class MaskingWidgetClip extends WidgetClip {
 	
 	public boolean hitTestMasked(IReadablePosition p) {
 		return super.hitTest(p);
+	}
+
+	@Override
+	public boolean mayHoverChildren(IReadablePosition globalPosition) {
+		EasyPooler ep = EasyPooler.obtainFresh();
+		try {
+			Position position = toLocalPosition(globalPosition, ep.obtain(Position.class));
+			return GeometryUtil.isInRectangle(position.getX(), position.getY(), 0, 0, getWidth(), getHeight());
+		} catch (NonInvertibleMatrixException e) {
+			return false;
+		} finally {
+			ep.freeAllAndSelf();
+		}
 	}
 }
