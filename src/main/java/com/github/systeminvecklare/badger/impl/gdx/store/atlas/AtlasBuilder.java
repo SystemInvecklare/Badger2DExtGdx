@@ -5,9 +5,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.IntConsumer;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
+import com.github.systeminvecklare.badger.impl.gdx.file.FileTypes;
 
 public class AtlasBuilder implements IAtlasBuilder {
 	private static final Comparator<Sides> BIGGEST_MIN_SIDE_FIRST_COMPARATOR = new Comparator<Sides>() {
@@ -140,7 +141,7 @@ public class AtlasBuilder implements IAtlasBuilder {
 		int minOverflowSize = Integer.MAX_VALUE;
 		Region rootRegion = new Region(0, 0, getAltasWidth(), getAltasHeight());
 		for(String texture : textures) {
-			Pixmap pixmap = new Pixmap(Gdx.files.internal(texture));
+			Pixmap pixmap = new Pixmap(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.IMAGE, texture));
 			boolean gotPlaced = rootRegion.place(texture, pixmap, padding, construction);
 			if(!gotPlaced) {
 				if(!allowOverflow) {
@@ -191,7 +192,7 @@ public class AtlasBuilder implements IAtlasBuilder {
 	private static void sortTexturesBySides(List<String> textures, Comparator<Sides> comparator) {
 		List<Sides> sortMap = new ArrayList<Sides>(textures.size());
 		for(String texture : textures) {
-			Pixmap pixmap = new Pixmap(Gdx.files.internal(texture));
+			Pixmap pixmap = new Pixmap(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.IMAGE, texture));
 			sortMap.add(new Sides(texture, pixmap.getWidth(), pixmap.getHeight()));
 			pixmap.dispose();
 		}

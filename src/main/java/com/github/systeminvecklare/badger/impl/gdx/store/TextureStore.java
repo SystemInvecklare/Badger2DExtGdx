@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
@@ -16,6 +15,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
+import com.github.systeminvecklare.badger.impl.gdx.file.FileTypes;
 import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasBuilder;
 
 public class TextureStore {
@@ -76,7 +76,7 @@ public class TextureStore {
 	}
 	
 	private static BitmapFont loadFont(String fontName) {
-		BitmapFontData bitmapFontData = new BitmapFontData(Gdx.files.internal(fontName+".fnt"), false);
+		BitmapFontData bitmapFontData = new BitmapFontData(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.FONT, fontName+".fnt"), false);
 		Array<TextureRegion> pageRegions = new Array<TextureRegion>(bitmapFontData.imagePaths.length);
 		for(String imagePath : bitmapFontData.imagePaths) {
 			pageRegions.add(getTexture(imagePath).asTextureRegion());
@@ -101,7 +101,7 @@ public class TextureStore {
 		
 		if(result == null) {
 //			System.out.println(textureName+" RAW");
-			Texture texture = new Texture(textureName);
+			Texture texture = new Texture(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.IMAGE, textureName));
 			managedTextures.add(texture);
 			texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
 			texture.setWrap(TextureWrap.ClampToEdge, TextureWrap.ClampToEdge);//TODO temp. Rather do a callback hook so you can do something to the texture based on name

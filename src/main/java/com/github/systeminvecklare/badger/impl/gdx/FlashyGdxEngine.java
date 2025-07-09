@@ -34,9 +34,14 @@ import com.github.systeminvecklare.badger.core.util.PoolableArrayOf16Floats;
 import com.github.systeminvecklare.badger.impl.gdx.audio.FlashySound;
 import com.github.systeminvecklare.badger.impl.gdx.audio.IFlashySoundDelegate;
 import com.github.systeminvecklare.badger.impl.gdx.audio.NonThreadedFlashySoundDelegate;
+import com.github.systeminvecklare.badger.impl.gdx.file.GdxFileResolver;
+import com.github.systeminvecklare.badger.impl.gdx.file.IFileResolver;
+import com.github.systeminvecklare.badger.impl.gdx.file.OverloadingFileResolver;
 import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
 
 public class FlashyGdxEngine implements IFlashyEngine {
+	private IFileResolver fileResolver = GdxFileResolver.INTERNAL;
+	
 	private ThreadLocal<IPoolManager> poolManager = new ThreadLocal<IPoolManager>();
 	private List<IStore> stores = new ArrayList<IStore>(0);
 	private boolean regeristingStore = false;
@@ -239,6 +244,22 @@ public class FlashyGdxEngine implements IFlashyEngine {
 		for(IStore store : stores) {
 			store.disposeInventory();
 		}
+	}
+	
+	public void appendFileResolver(IFileResolver fileResolver) {
+		if(this.fileResolver instanceof OverloadingFileResolver) {
+			((OverloadingFileResolver) this.fileResolver).append(fileResolver);
+		} else {
+			this.fileResolver = new OverloadingFileResolver().append(this.fileResolver).append(fileResolver);
+		}
+	}
+	
+	public void setFileResolver(IFileResolver fileResolver) {
+		this.fileResolver = fileResolver;
+	}
+	
+	public IFileResolver getFileResolver() {
+		return fileResolver;
 	}
 	
 	public static FlashyGdxEngine get() {

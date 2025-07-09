@@ -1,6 +1,5 @@
 package com.github.systeminvecklare.badger.impl.gdx.store;
 
-import java.util.List;
 import java.util.Locale;
 
 import com.badlogic.gdx.Files.FileType;
@@ -8,6 +7,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
+import com.github.systeminvecklare.badger.impl.gdx.file.FileTypes;
 
 public class ShaderStore {
 	private static final AbstractStore<ShaderKey, ShaderProgram> store = new AbstractStore<ShaderKey, ShaderProgram>() {
@@ -91,7 +91,7 @@ public class ShaderStore {
 				}
 			}
 		}
-		return Gdx.files.internal(pathName);
+		return FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.SHADER, pathName);
 	}
 	
 	private static class ShaderKey {

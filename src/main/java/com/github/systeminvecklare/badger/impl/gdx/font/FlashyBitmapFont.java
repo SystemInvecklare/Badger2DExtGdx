@@ -3,7 +3,6 @@ package com.github.systeminvecklare.badger.impl.gdx.font;
 import java.util.List;
 import java.util.function.Supplier;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -18,7 +17,9 @@ import com.github.systeminvecklare.badger.core.font.TransformedFlashyText;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.util.FloatRectangle;
 import com.github.systeminvecklare.badger.core.util.IFloatRectangle;
+import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
+import com.github.systeminvecklare.badger.impl.gdx.file.FileTypes;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class FlashyBitmapFont implements IFlashyFont<Color> {
@@ -37,7 +38,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 	 * @param fontFile
 	 */
 	public FlashyBitmapFont(String fontPath) {
-		this(Gdx.files.internal(fontPath));
+		this(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.FONT, fontPath));
 	}
 	
 	/**
