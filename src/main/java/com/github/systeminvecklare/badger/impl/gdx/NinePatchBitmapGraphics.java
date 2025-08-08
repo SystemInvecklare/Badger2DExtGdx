@@ -7,7 +7,6 @@ import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCyc
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.widget.IRectangle;
-import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
 import com.github.systeminvecklare.badger.impl.gdx.store.NinePatchDefinition;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
@@ -39,11 +38,15 @@ public class NinePatchBitmapGraphics implements IMovieClipLayer {
 		GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
 		gdxDrawCycle.updateSpriteBatchTransform();
 		SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
-		NinePatch ninePatch = TextureStore.getNinePatch(ninePatchDefinition);
+		NinePatch ninePatch = TextureStore.getNinePatch(getNinePatchDefinition());
 		ninePatch.setColor(Color.WHITE);
 		spriteBatch.setColor(color);
 		
 		ninePatch.draw(spriteBatch, rectangle.getX(), rectangle.getY(), rectangle.getWidth(), rectangle.getHeight());
+	}
+	
+	public NinePatchDefinition getNinePatchDefinition() {
+		return ninePatchDefinition;
 	}
 
 	@Override
