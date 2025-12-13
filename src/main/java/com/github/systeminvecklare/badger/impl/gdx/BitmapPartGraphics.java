@@ -74,10 +74,39 @@ public class BitmapPartGraphics implements IMovieClipLayer {
 	public void draw(IDrawCycle drawCycle) {
 		SpriteBatch spriteBatch = ((GdxDrawCycle) drawCycle).getSpriteBatch();
 		((GdxDrawCycle) drawCycle).updateSpriteBatchTransform();
-		spriteBatch.setColor(tint);
+		spriteBatch.setColor(getTint());
 		ITexture texture = TextureStore.getTexture(textureName);
 		texture.setWrap(xWrap, yWrap);
-		texture.draw(spriteBatch, -centerX, -centerY, width, height, srcX, srcY, srcWidth, srcHeight, getFlipX(), getFlipY());
+		texture.draw(spriteBatch, -getCenterX(), -getCenterY(), getWidth(), getHeight(), getSrcX(), getSrcY(), getSrcWidth(), getSrcHeight(), getFlipX(), getFlipY());
+	}
+	
+
+	public Color getTint() {
+		return tint;
+	}
+	
+	public int getSrcX() {
+		return srcX;
+	}
+	
+	public int getSrcY() {
+		return srcY;
+	}
+	
+	public int getSrcWidth() {
+		return srcWidth;
+	}
+	
+	public int getSrcHeight() {
+		return srcHeight;
+	}
+
+	public float getCenterX() {
+		return centerX;
+	}
+	
+	public float getCenterY() {
+		return centerY;
 	}
 	
 	public boolean getFlipY() {
