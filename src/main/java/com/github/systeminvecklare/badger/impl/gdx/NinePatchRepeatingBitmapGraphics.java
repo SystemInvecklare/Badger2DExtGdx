@@ -7,6 +7,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCyc
 import com.github.systeminvecklare.badger.core.graphics.components.moviecliplayer.IMovieClipLayer;
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.widget.IRectangle;
+import com.github.systeminvecklare.badger.core.widget.PlaceholderWidget;
 import com.github.systeminvecklare.badger.impl.gdx.store.ITexture;
 import com.github.systeminvecklare.badger.impl.gdx.store.NinePatchDefinition;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
@@ -19,6 +20,7 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 	
 	private NinePatchDefinition cacheKey = null;
 	private CachedSubTextures cachedSubTextures = null;
+	private final PlaceholderWidget rectangleCache = new PlaceholderWidget();
 	
 	public NinePatchRepeatingBitmapGraphics(String texture, int inset, IRectangle rectangle) {
 		this(texture, inset, rectangle, Color.WHITE);
@@ -47,44 +49,83 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 		final NinePatchDefinition ninePatch = getNinePatch();
 		ITexture texture = TextureStore.getTexture(ninePatch.textureName);
 		
+		// Sample rectangle
+		rectangleCache.setTo(rectangle);
+		
+		int ninePatchLeft = ninePatch.left;
+		int ninePatchRight = ninePatch.right;
+		int ninePatchBottom = ninePatch.bottom;
+		int ninePatchTop = ninePatch.top;
 		//TODO Optimization: Cache on rectangle (x,y,width,height,ninepatch,texture) and render to separate texture (with Color.WHITE). In most cases these won't change and we can reuse the prerendered texture! (and if we do this we won't need to have the CachedSubTextures)
 		
-		texture.draw(spriteBatch, rectangle.getX(), rectangle.getY(), ninePatch.left, ninePatch.bottom, 0, texture.getHeight()-ninePatch.bottom, ninePatch.left, ninePatch.bottom, false, false);
-		texture.draw(spriteBatch, rectangle.getX()+rectangle.getWidth()-ninePatch.right, rectangle.getY(), ninePatch.right, ninePatch.bottom, texture.getWidth() - ninePatch.right, texture.getHeight()-ninePatch.bottom, ninePatch.right, ninePatch.bottom, false, false);
-		texture.draw(spriteBatch, rectangle.getX(), rectangle.getY()+rectangle.getHeight() - ninePatch.top, ninePatch.left, ninePatch.top, 0, 0, ninePatch.left, ninePatch.top, false, false);
-		texture.draw(spriteBatch, rectangle.getX()+rectangle.getWidth()-ninePatch.right, rectangle.getY()+rectangle.getHeight() - ninePatch.top, ninePatch.right, ninePatch.top, texture.getWidth() - ninePatch.right, 0, ninePatch.right, ninePatch.top, false, false);
+		final int ninePatchHorizontal = ninePatchLeft + ninePatchRight;
+		final int ninePatchVertical = ninePatchTop + ninePatchBottom;
+		
+		int horizontalInnerSpace = rectangleCache.getWidth() - ninePatchHorizontal;
+		int verticalInnerSpace = rectangleCache.getHeight() - ninePatchVertical;
+		
+		int bottomCornersMaxHeight = rectangleCache.getHeight()/2;
+		int topCornersMaxHeight = rectangleCache.getHeight() - bottomCornersMaxHeight;
+		int rightCornersMaxWidth = rectangleCache.getWidth()/2;
+		int leftCornersMaxWidth = rectangleCache.getWidth() - rightCornersMaxWidth;
+
+		ninePatchLeft = Math.min(ninePatchLeft, leftCornersMaxWidth);
+		ninePatchRight = Math.min(ninePatchRight, rightCornersMaxWidth);
+		ninePatchBottom = Math.min(ninePatchBottom, bottomCornersMaxHeight);
+		ninePatchTop = Math.min(ninePatchTop, topCornersMaxHeight);
+		
+		// Bottom left corner
+		texture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY(), ninePatchLeft, ninePatchBottom, 0, texture.getHeight()-ninePatchBottom, ninePatchLeft, ninePatchBottom, false, false);
+		
+		// Bottom right corner
+		texture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth()-ninePatchRight, rectangleCache.getY(), ninePatchRight, ninePatchBottom, texture.getWidth() - ninePatchRight, texture.getHeight()-ninePatchBottom, ninePatchRight, ninePatchBottom, false, false);
+		
+		// Top left corner
+		texture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY()+rectangleCache.getHeight() - ninePatchTop, ninePatchLeft, ninePatchTop, 0, 0, ninePatchLeft, ninePatchTop, false, false);
+		
+		// Bottom left corner
+		texture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth()-ninePatchRight, rectangleCache.getY()+rectangleCache.getHeight() - ninePatchTop, ninePatchRight, ninePatchTop, texture.getWidth() - ninePatchRight, 0, ninePatchRight, ninePatchTop, false, false);
 		
 		if(cacheKey == null || !cacheKey.equals(ninePatch)) {
 			cacheKey = ninePatch;
-			cachedSubTextures = new CachedSubTextures(cacheKey);
+			cachedSubTextures = new CachedSubTextures(cacheKey, texture);
 		}
-		final int ninePatchHorizontal = ninePatch.left + ninePatch.right;
-		final int ninePatchVertical = ninePatch.top + ninePatch.bottom;
-		{
-			ITexture subTexture = cachedSubTextures.getBottom(texture);
-			float drawWidth = rectangle.getWidth() - ninePatchHorizontal;
-			subTexture.draw(spriteBatch, rectangle.getX()+ninePatch.left, rectangle.getY(), drawWidth, ninePatch.bottom, 0, 1, drawWidth/subTexture.getWidth(), 0);
+		
+		cachedSubTextures.invalidateIfTextureChanged(texture);
+		
+		if(horizontalInnerSpace > 0) {
+			{
+				ITexture subTexture = cachedSubTextures.getBottom(texture);
+				float drawWidth = rectangleCache.getWidth() - ninePatchHorizontal;
+				float drawHeight = Math.min(ninePatchBottom, bottomCornersMaxHeight);
+				subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY(), drawWidth, drawHeight, 0, 1, drawWidth/subTexture.getWidth(), 1f - drawHeight/subTexture.getHeight());
+			}
+			{
+				ITexture subTexture = cachedSubTextures.getTop(texture);
+				float drawWidth = rectangleCache.getWidth() - ninePatchHorizontal;
+				float drawHeight = Math.min(ninePatchTop, topCornersMaxHeight);
+				subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY()+rectangleCache.getHeight() - drawHeight, drawWidth, drawHeight, 0, drawHeight/subTexture.getHeight(), drawWidth/subTexture.getWidth(), 0);
+			}
 		}
-		{
-			ITexture subTexture = cachedSubTextures.getTop(texture);
-			float drawWidth = rectangle.getWidth() - ninePatchHorizontal;
-			subTexture.draw(spriteBatch, rectangle.getX()+ninePatch.left, rectangle.getY()+rectangle.getHeight() - ninePatch.top, drawWidth, ninePatch.top, 0, 1, drawWidth/subTexture.getWidth(), 0);
+		if(verticalInnerSpace > 0) {
+			{
+				ITexture subTexture = cachedSubTextures.getLeft(texture);
+				float drawWidth = Math.min(ninePatchLeft, leftCornersMaxWidth);
+				float drawHeight = rectangleCache.getHeight() - ninePatchVertical;
+				subTexture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 0, 0, (drawWidth/subTexture.getWidth()), -drawHeight/subTexture.getHeight());
+			}
+			{
+				ITexture subTexture = cachedSubTextures.getRight(texture);
+				float drawWidth = Math.min(ninePatchRight, rightCornersMaxWidth);
+				float drawHeight = rectangleCache.getHeight() - ninePatchVertical;
+				subTexture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth() - drawWidth, rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 1f - (drawWidth/subTexture.getWidth()), 0, 1, -drawHeight/subTexture.getHeight());
+			}
 		}
-		{
-			ITexture subTexture = cachedSubTextures.getLeft(texture);
-			float drawHeight = rectangle.getHeight() - ninePatchVertical;
-			subTexture.draw(spriteBatch, rectangle.getX(), rectangle.getY()+ninePatch.bottom, ninePatch.left, drawHeight, 0, 0, 1, -drawHeight/subTexture.getHeight());
-		}
-		{
-			ITexture subTexture = cachedSubTextures.getRight(texture);
-			float drawHeight = rectangle.getHeight() - ninePatchVertical;
-			subTexture.draw(spriteBatch, rectangle.getX()+rectangle.getWidth() - ninePatch.right, rectangle.getY()+ninePatch.bottom, ninePatch.right, drawHeight, 0, 0, 1, -drawHeight/subTexture.getHeight());
-		}
-		if(drawMiddle()) {
+		if(drawMiddle() && verticalInnerSpace > 0 && horizontalInnerSpace > 0) {
 			ITexture subTexture = cachedSubTextures.getMiddle(texture);
-			float drawWidth = rectangle.getWidth() - ninePatchHorizontal;
-			float drawHeight = rectangle.getHeight() - ninePatchVertical;
-			subTexture.draw(spriteBatch, rectangle.getX()+ninePatch.left, rectangle.getY()+ninePatch.bottom, drawWidth, drawHeight, 0, 0, drawWidth/subTexture.getWidth(), -drawHeight/subTexture.getHeight());
+			float drawWidth = rectangleCache.getWidth() - ninePatchHorizontal;
+			float drawHeight = rectangleCache.getHeight() - ninePatchVertical;
+			subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 0, 0, drawWidth/subTexture.getWidth(), -drawHeight/subTexture.getHeight());
 		}
 	}
 
@@ -120,6 +161,8 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 		private final int ninePatchHorizontal;
 		private final int ninePatchVertical;
 		
+		private ITexture textureKey;
+		
 		private ITexture bottom = null;
 		private ITexture top = null;
 		private ITexture left = null;
@@ -127,10 +170,23 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 		private ITexture middle = null;
 
 		
-		public CachedSubTextures(NinePatchDefinition ninePatch) {
+		public CachedSubTextures(NinePatchDefinition ninePatch, ITexture texture) {
 			this.ninePatch = ninePatch;
 			this.ninePatchHorizontal = ninePatch.left + ninePatch.right;
 			this.ninePatchVertical = ninePatch.top + ninePatch.bottom;
+			this.textureKey = texture;
+		}
+		
+		public void invalidateIfTextureChanged(ITexture textureKey) {
+			if(this.textureKey != textureKey) {
+				this.textureKey = textureKey;
+				
+				bottom = null;
+				top = null;
+				left = null;
+				right = null;
+				middle = null;
+			}
 		}
 
 		public ITexture getMiddle(ITexture texture) {
