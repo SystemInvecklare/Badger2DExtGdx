@@ -42,15 +42,18 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 
 	@Override
 	public void draw(IDrawCycle drawCycle) {
+		// Sample rectangle
+		rectangleCache.setTo(rectangle);
+		if(rectangleCache.getWidth() == 0 || rectangleCache.getHeight() == 0) {
+			return;
+		}
+		
 		GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
 		gdxDrawCycle.updateSpriteBatchTransform();
 		SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
 		spriteBatch.setColor(color);
 		final NinePatchDefinition ninePatch = getNinePatch();
 		ITexture texture = TextureStore.getTexture(ninePatch.textureName);
-		
-		// Sample rectangle
-		rectangleCache.setTo(rectangle);
 		
 		int ninePatchLeft = ninePatch.left;
 		int ninePatchRight = ninePatch.right;
@@ -64,9 +67,9 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 		int horizontalInnerSpace = rectangleCache.getWidth() - ninePatchHorizontal;
 		int verticalInnerSpace = rectangleCache.getHeight() - ninePatchVertical;
 		
-		int bottomCornersMaxHeight = rectangleCache.getHeight()/2;
+		int bottomCornersMaxHeight = ninePatchBottom - ninePatchBottom*(ninePatchVertical - rectangleCache.getHeight())/ninePatchVertical;
 		int topCornersMaxHeight = rectangleCache.getHeight() - bottomCornersMaxHeight;
-		int rightCornersMaxWidth = rectangleCache.getWidth()/2;
+		int rightCornersMaxWidth = ninePatchRight - ninePatchRight*(ninePatchHorizontal - rectangleCache.getWidth())/ninePatchHorizontal;
 		int leftCornersMaxWidth = rectangleCache.getWidth() - rightCornersMaxWidth;
 
 		ninePatchLeft = Math.min(ninePatchLeft, leftCornersMaxWidth);
@@ -83,7 +86,7 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 		// Top left corner
 		texture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY()+rectangleCache.getHeight() - ninePatchTop, ninePatchLeft, ninePatchTop, 0, 0, ninePatchLeft, ninePatchTop, false, false);
 		
-		// Bottom left corner
+		// Top left corner
 		texture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth()-ninePatchRight, rectangleCache.getY()+rectangleCache.getHeight() - ninePatchTop, ninePatchRight, ninePatchTop, texture.getWidth() - ninePatchRight, 0, ninePatchRight, ninePatchTop, false, false);
 		
 		if(cacheKey == null || !cacheKey.equals(ninePatch)) {
