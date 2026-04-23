@@ -1,13 +1,7 @@
 package com.github.systeminvecklare.badger.impl.gdx;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.AbstractExecutorService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Quaternion;
@@ -42,7 +36,7 @@ import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
 public class FlashyGdxEngine implements IFlashyEngine {
 	private IFileResolver fileResolver = GdxFileResolver.INTERNAL;
 	
-	private ThreadLocal<IPoolManager> poolManager = new ThreadLocal<IPoolManager>();
+	private IPoolManager poolManager;
 	private List<IStore> stores = new ArrayList<IStore>(0);
 	private boolean regeristingStore = false;
 	private List<IStore> queuedStores = new ArrayList<IStore>(0);
@@ -51,74 +45,16 @@ public class FlashyGdxEngine implements IFlashyEngine {
 	}
 	
 	public void initPoolManagerOnThread() {
-		poolManager.set(newPoolManager());
+		poolManager = newPoolManager();
 	}
 	
 	public void disposePoolManagerOnThread() {
-		poolManager.set(null);
-		poolManager.remove();
+		poolManager = null;
 	}
 	
-	public ExecutorService newSingleThreadExecutorWithPoolManager() {
-		return Executors.newSingleThreadExecutor(new ThreadFactory() {
-			@Override
-			public Thread newThread(final Runnable r) {
-				return Executors.defaultThreadFactory().newThread(new Runnable() {
-					@Override
-					public void run() {
-						FlashyGdxEngine.this.initPoolManagerOnThread();
-						try {
-							r.run();
-						} finally {
-							FlashyGdxEngine.this.disposePoolManagerOnThread();
-						}
-					}
-				});
-			}
-		});
-	}
-	
-	public static ExecutorService sameThreadExecutor() {
-		return new AbstractExecutorService() {
-			private boolean terminated = false;
-			
-			@Override
-			public void execute(Runnable command) {
-				if(!terminated) {
-					command.run();
-				}
-			}
-			
-			@Override
-			public List<Runnable> shutdownNow() {
-				return Collections.emptyList();
-			}
-			
-			@Override
-			public void shutdown() {
-				terminated = true;
-			}
-			
-			@Override
-			public boolean isTerminated() {
-				return terminated;
-			}
-			
-			@Override
-			public boolean isShutdown() {
-				return terminated;
-			}
-			
-			@Override
-			public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-				return true;
-			}
-		};
-	}
-
 	@Override
 	public IPoolManager getPoolManager() {
-		return poolManager.get();
+		return poolManager;
 	}
 	
 	protected IPoolManager newPoolManager() {
