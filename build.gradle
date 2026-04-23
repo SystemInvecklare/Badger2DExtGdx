@@ -12,6 +12,44 @@ repositories {
 
 sourceSets.main.resources.srcDirs = ["src/main/java"]
 
+// Consumers should set
+// rootProject.ext.useGwt = true
+// if they require gwt-compatibility
+//
+// ex:
+// project(":html") {
+//   ...
+//   rootProject.ext.useGwt = true
+//   ...
+// }
+// Note: This is probably not needed?
+def useGwt = project.findProperty("useGwt") == true
+
+sourceSets {
+	main {
+        java {
+        	if(useGwt) {
+        		srcDirs = ["src/main/java", "src/gwt/java"]
+        	} else {
+	        	srcDirs = ["src/main/java", "src/nongwt/java"]
+        	}
+        }
+    }
+    
+    gwt {
+    	java {
+    		srcDirs = ["src/main/java", "src/gwt/java"]
+    	}
+    }
+}
+
+java {
+    registerFeature("gwt") { //<-- This is only used for the name of the jar-artifact (it seems)
+        usingSourceSet(sourceSets.gwt)
+		withSourcesJar()
+        withJavadocJar()
+    }
+}
 
 dependencies {
 	//implementation "com.github.SystemInvecklare:Badger2DCore:r0.19.0"
