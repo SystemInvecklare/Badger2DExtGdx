@@ -12,6 +12,13 @@ repositories {
 
 sourceSets.main.resources.srcDirs = ["src/main/java"]
 
+sourceSets {
+	main {
+		java {
+			exclude "super/**"
+		}
+	}
+}
 
 dependencies {
 	//implementation "com.github.SystemInvecklare:Badger2DCore:r0.19.0"
