@@ -1,15 +1,29 @@
 package com.github.systeminvecklare.badger.impl.gdx.store;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
+import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.utils.JsonReader;
+import com.badlogic.gdx.utils.JsonValue;
+import com.badlogic.gdx.utils.JsonWriter;
+import com.badlogic.gdx.utils.ScreenUtils;
 import com.github.systeminvecklare.badger.core.math.Mathf;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasBuilder;
@@ -24,7 +38,11 @@ public class AtlasStore {
 	/*package-protected*/ static AbstractStore<IAtlasBuilder, TextureAtlas> atlasStore = new AbstractStore<IAtlasBuilder, TextureAtlas>() {
 		@Override
 		protected TextureAtlas loadItem(IAtlasBuilder itemName) {
-			return new TextureAtlas(itemName);
+			if(itemName instanceof FileLoadedAtlas) {
+				return TextureAtlas.fromFile((FileLoadedAtlas) itemName);
+			} else {
+				return new TextureAtlas(itemName);
+			}
 		}
 
 		@Override
@@ -60,12 +78,124 @@ public class AtlasStore {
 		return getOverflowAtlas(atlasStore.getItem(atlasBuilder), overflowDepth);
 	}
 	
+	private static class FileLoadedAtlas implements IAtlasBuilder {
+		public final FileHandle texturePath;
+		public final TextureFilter minFilter;
+		public final TextureFilter magFilter;
+		public final Map<String, PackedTextureTemplate> regions = new LinkedHashMap<String, PackedTextureTemplate>();
+		public TextureAtlas overflowAtlas;
+
+		public FileLoadedAtlas(FileHandle texturePath, TextureFilter minFilter, TextureFilter magFilter) {
+			this.texturePath = texturePath;
+			this.minFilter = minFilter;
+			this.magFilter = magFilter;
+		}
+
+		@Override
+		public void build(IAtlasConstruction construction) {
+		}
+
+		@Override
+		public int getAltasWidth() {
+			Texture texture = new Texture(texturePath);
+			int result = texture.getWidth();
+			texture.dispose();
+			return result;
+		}
+
+		@Override
+		public int getAltasHeight() {
+			Texture texture = new Texture(texturePath);
+			int result = texture.getHeight();
+			texture.dispose();
+			return result;
+		}
+
+		@Override
+		public TextureFilter getMinFilter() {
+			return minFilter;
+		}
+
+		@Override
+		public TextureFilter getMagFilter() {
+			return magFilter;
+		}
+
+		@Override
+		public boolean contains(String texture) {
+			return regions.containsKey(texture);
+		}
+	}
+	
+	public static void saveAtlasToFile(FileHandle path, String atlasName, IAtlasBuilder atlasBuilder) throws IOException {
+		atlasStore.getItem(atlasBuilder).save(path, atlasName);
+	}
+	
+	public static IAtlasBuilder loadAtlasFromFile(FileHandle path, String atlasName) throws IOException {
+		FileHandle file = path.child(atlasName+"_0.json");
+		return loadAtlasFromFile(path, file);
+	}
+	
+	private static FileLoadedAtlas loadAtlasFromFile(FileHandle path, FileHandle file) throws IOException {
+		JsonValue jsonReader = new JsonReader().parse(file);
+		
+		FileLoadedAtlas overflowAtlas = null;
+		String overflowAtlasLink = jsonReader.getString("overflow_atlas", null);
+		if(overflowAtlasLink != null) {
+			overflowAtlas = loadAtlasFromFile(path, path.child(overflowAtlasLink));
+		}
+		
+		FileHandle imageTexturePath = path.child(jsonReader.getString("image"));
+		if(!imageTexturePath.exists()) {
+			throw new IOException(file.toString()+" referenced "+imageTexturePath.toString()+" as \"image\", but it does not exist!");
+		}
+		FileLoadedAtlas fileLoadedAtlas = new FileLoadedAtlas(imageTexturePath, loadFilter(jsonReader, "min_filter"), loadFilter(jsonReader, "mag_filter"));
+		JsonValue regions = jsonReader.get("regions");
+		if(regions != null) {
+			JsonValue entry = regions.child;
+			while(entry != null) {
+				String name = entry.name;
+				fileLoadedAtlas.regions.put(name, PackedTexture.loadFromJson(entry));
+				entry = entry.next;
+			}
+		}
+		if(overflowAtlas != null) {
+			fileLoadedAtlas.overflowAtlas = TextureAtlas.fromFile(overflowAtlas);
+		}
+		return fileLoadedAtlas;
+	}
+	
+	private static void saveFilter(JsonWriter writer, String name, TextureFilter textureFilter) throws IOException {
+		writer.set(name, textureFilter.ordinal());
+	}
+	
+	private static TextureFilter loadFilter(JsonValue reader, String name) {
+		return TextureFilter.values()[reader.getInt(name)];
+	}
+	
 	private static class TextureAtlas implements ITextureAtlas {
 		private final Texture texture;
 		private final Map<String, PackedTexture> regions = new HashMap<String, PackedTexture>();
 		private TextureAtlas overflowAtlas = null;
+		
+		public TextureAtlas(FileLoadedAtlas atlas) {
+			this.texture = new Texture(atlas.texturePath);
+			this.texture.setWrap(DEFAULT_WRAP, DEFAULT_WRAP);
+			this.texture.setFilter(atlas.minFilter, atlas.magFilter);
+			for(Entry<String, PackedTextureTemplate> entry : atlas.regions.entrySet()) {
+				regions.put(entry.getKey(), entry.getValue().create(this.texture));
+			}
+			this.overflowAtlas = atlas.overflowAtlas;
+		}
+
+		public static TextureAtlas fromFile(FileLoadedAtlas atlas) {
+			return new TextureAtlas(atlas);
+		}
 
 		public TextureAtlas(IAtlasBuilder builder) {
+			if(builder instanceof FileLoadedAtlas) {
+				throw new IllegalArgumentException("Incorrect TextureAtlas constructor used");
+			}
 			this.texture = new Texture(builder.getAltasWidth(), builder.getAltasHeight(), Format.RGBA8888);
 			this.texture.setFilter(builder.getMinFilter(), builder.getMagFilter());
 			this.texture.setWrap(DEFAULT_WRAP, DEFAULT_WRAP);
@@ -117,7 +247,103 @@ public class AtlasStore {
 			}
 			return regions.get(texture);
 		}
+
+		public void save(FileHandle path, String atlasName) throws IOException {
+			saveOverflowChain(path, atlasName, 0);
+		}
+		
+		private String saveOverflowChain(FileHandle path, String atlasName, int index) throws IOException {
+			String imageName = atlasName+"_"+index+".png";
+			String jsonName = atlasName+"_"+index+".json";
+			String overflowAtlasNameOrNull = null;
+			if(overflowAtlas != null) {
+				overflowAtlasNameOrNull = overflowAtlas.saveOverflowChain(path, atlasName, index + 1);
+			}
+			FileHandle parentDir = path.child(atlasName).parent();
+			if(!parentDir.exists()) {
+				parentDir.mkdirs();
+			}
+			save(path, imageName, jsonName, overflowAtlasNameOrNull);
+			return jsonName;
+		}
+		
+		private void save(FileHandle path, String imageName, String jsonName, String overflowAtlasJsonNameOrNull) throws IOException {
+			saveTexture(path.child(imageName));
+			
+			FileHandle jsonFilePath = path.child(jsonName);
+			JsonWriter writer = new JsonWriter(jsonFilePath.writer(false, "utf-8"));
+			writer.setOutputType(JsonWriter.OutputType.json);
+			try {
+				writer.object();
+				writer.set("image", imageName);
+				saveFilter(writer, "min_filter", texture.getMinFilter());
+				saveFilter(writer, "mag_filter", texture.getMagFilter());
+				
+				writer.object("regions");
+				for(Entry<String, PackedTexture> entry : regions.entrySet()) {
+					writer.name(entry.getKey());
+					PackedTexture packedTexture = entry.getValue();
+					writer.object();
+					packedTexture.writeToJson(writer);
+					writer.pop();
+				}
+				writer.pop(); //pop regions object
+				if(overflowAtlasJsonNameOrNull != null) {
+					writer.set("overflow_atlas", overflowAtlasJsonNameOrNull);
+				}
+				writer.pop();
+				writer.flush();
+			} finally {
+				writer.close();
+			}
+		}
+		
+		private void saveTexture(FileHandle imageFile) {
+		    int w = texture.getWidth();
+		    int h = texture.getHeight();
+
+		    FrameBuffer fbo = new FrameBuffer(Pixmap.Format.RGBA8888, w, h, false);
+		    SpriteBatch batch = new SpriteBatch();
+		    
+		    batch.setBlendFunction(GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
+		    
+		    fbo.begin();
+
+		    Gdx.gl.glViewport(0, 0, w, h);
+
+		    Gdx.gl.glClearColor(0, 0, 0, 0);
+		    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+		    batch.setProjectionMatrix(new Matrix4().setToOrtho2D(0, 0, w, h));
+
+		    batch.begin();
+
+		    batch.draw(texture, 0, 0, w, h);
+
+		    batch.end();
+
+		    Pixmap pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, w, h);
+
+		    fbo.end();
+
+		    Pixmap flipped = new Pixmap(w, h, pixmap.getFormat());
+
+		    for (int y = 0; y < h; y++) {
+		        for (int x = 0; x < w; x++) {
+		            flipped.drawPixel(x, h - 1 - y, pixmap.getPixel(x, y));
+		        }
+		    }
+
+		    pixmap.dispose();
+
+		    PixmapIO.writePNG(imageFile, flipped);
+		    flipped.dispose();
+
+		    batch.dispose();
+		    fbo.dispose();
+		}
 	}
+	
 	
 	private static class TextureRegionKey {
 		private float xTex1;
@@ -195,6 +421,38 @@ public class AtlasStore {
 		protected abstract V calculate(K key);
 	}
 	
+	private static class PackedTextureTemplate {
+		private final int x;
+		private final int y;
+		private final int width;
+		private final int height;
+		private final boolean flipX;
+		private final boolean flipY;
+		private final TextureWrap xWrap;
+		private final TextureWrap yWrap;
+
+		public PackedTextureTemplate(int x, int y, int width, int height, boolean flipX, boolean flipY,
+				TextureWrap xWrap, TextureWrap yWrap) {
+				this.x = x;
+				this.y = y;
+				this.width = width;
+				this.height = height;
+				this.flipX = flipX;
+				this.flipY = flipY;
+				this.xWrap = xWrap;
+				this.yWrap = yWrap;
+		}
+
+		public PackedTexture create(Texture texture) {
+			TextureRegion region = new TextureRegion(texture, x, y, width, height);
+			region.flip(flipX, flipY);
+			PackedTexture packedTexture = new PackedTexture(region);
+			packedTexture.xWrap = xWrap;
+			packedTexture.yWrap = yWrap;
+			return packedTexture;
+		}
+	}
+	
 	/*package-protected*/ static class PackedTexture implements ITexture {
 		private final TextureRegion region;
 		private TextureWrap xWrap = DEFAULT_WRAP;
@@ -221,6 +479,46 @@ public class AtlasStore {
 		
 		private PackedTexture(TextureRegion region) {
 			this.region = region;
+		}
+		
+		private void writeToJson(JsonWriter writer) throws IOException {
+			writer.set("x", region.getRegionX());
+			writer.set("y", region.getRegionY());
+			writer.set("width", region.getRegionWidth());
+			writer.set("height", region.getRegionHeight());
+			if(region.isFlipX()) {
+				writer.set("flip_x", true);
+			}
+			if(region.isFlipY()) {
+				writer.set("flip_y", true);
+			}
+			if(xWrap != TextureWrap.ClampToEdge) {
+				writer.set("x_wrap", xWrap.name());
+			}
+			if(yWrap != TextureWrap.ClampToEdge) {
+				writer.set("y_wrap", yWrap.name());
+			}
+		}
+		
+		private static PackedTextureTemplate loadFromJson(JsonValue data) {
+			int x = data.getInt("x");
+			int y = data.getInt("y");
+			int width = data.getInt("width");
+			int height = data.getInt("height");
+			
+			boolean flipX = data.getBoolean("flip_x", false);
+			boolean flipY = data.getBoolean("flip_y", false);
+			
+			TextureWrap xWrap = TextureWrap.ClampToEdge;
+			TextureWrap yWrap = TextureWrap.ClampToEdge;
+			if(data.has("x_wrap")) {
+				xWrap = TextureWrap.valueOf(data.getString("x_wrap"));
+			}
+			if(data.has("y_wrap")) {
+				yWrap = TextureWrap.valueOf(data.getString("y_wrap"));
+			}
+			
+			return new PackedTextureTemplate(x, y, width, height, flipX, flipY, xWrap, yWrap);
 		}
 
 		@Override
