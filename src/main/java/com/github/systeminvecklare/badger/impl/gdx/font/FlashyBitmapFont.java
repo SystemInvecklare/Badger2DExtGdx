@@ -24,11 +24,17 @@ import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class FlashyBitmapFont implements IFlashyFont<Color> {
 	private final LazyBitmapFont fontHolder;
+	private final float lineHeightScale;
 	
 	public FlashyBitmapFont(BitmapFont font) {
+		this(font, 1f);
+	}
+	
+	public FlashyBitmapFont(BitmapFont font, float lineHeightScale) {
 		if(font == null) {
 			throw new NullPointerException("font was null");
 		}
+		this.lineHeightScale = lineHeightScale;
 		this.fontHolder = new LazyBitmapFont(null);
 		this.fontHolder.font = font;
 	}
@@ -38,7 +44,11 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 	 * @param fontFile
 	 */
 	public FlashyBitmapFont(String fontPath) {
-		this(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.FONT, fontPath));
+		this(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.FONT, fontPath), 1f);
+	}
+	
+	public FlashyBitmapFont(String fontPath, float lineHeightScale) {
+		this(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.FONT, fontPath), lineHeightScale);
 	}
 	
 	/**
@@ -46,17 +56,53 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 	 * @param fontFile
 	 */
 	public FlashyBitmapFont(FileHandle fontFile) {
+		this(fontFile, 1f);
+	}
+	
+	public FlashyBitmapFont(FileHandle fontFile, float lineHeightScale) {
 		this.fontHolder = new LazyBitmapFont(fontFile);
+		this.lineHeightScale = lineHeightScale;
+	}
+	
+	private GlyphLayout newGlyphLayout(BitmapFont font, String text) {
+		if(lineHeightScale == 1f) {
+			return new GlyphLayout(font, text);
+		}
+		float lineHeight = font.getLineHeight();
+		GlyphLayout layout;
+		try {
+			font.getData().setLineHeight(lineHeight*lineHeightScale);
+			layout = new GlyphLayout(font, text);
+		} finally {
+			font.getData().setLineHeight(lineHeight);
+		}
+		return layout;
+	}
+	
+
+	private GlyphLayout newGlyphLayout(BitmapFont font, String text, Color color, float maxWidth, int align, boolean wrap) {
+		if(lineHeightScale == 1f) {
+			return new GlyphLayout(font, text, color, maxWidth, align, wrap);
+		}
+		float lineHeight = font.getLineHeight();
+		GlyphLayout layout;
+		try {
+			font.getData().setLineHeight(lineHeight*lineHeightScale);
+			layout = new GlyphLayout(font, text, color, maxWidth, align, wrap);
+		} finally {
+			font.getData().setLineHeight(lineHeight);
+		}
+		return layout;
 	}
 
 	@Override
 	public float getWidth(String text) {
-		return new GlyphLayout(fontHolder.getFont(), text).width;
+		return newGlyphLayout(fontHolder.getFont(), text).width;
 	}
 
 	@Override
 	public float getHeight(String text) {
-		return new GlyphLayout(fontHolder.getFont(), text).height;
+		return newGlyphLayout(fontHolder.getFont(), text).height;
 	}
 	
 	private FloatRectangle getBoundsFromGlyphLayout(GlyphLayout glyphLayout) {
@@ -79,18 +125,18 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 	
 	@Override
 	public FloatRectangle getBounds(String text) {
-		return getBoundsFromGlyphLayout(new GlyphLayout(fontHolder.getFont(), text));
+		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text));
 	}
 	
 	
 	@Override
 	public FloatRectangle getBounds(String text, float maxWidth) {
-		return getBoundsFromGlyphLayout(new GlyphLayout(fontHolder.getFont(), text, Color.WHITE, maxWidth, Align.left, true));
+		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text, Color.WHITE, maxWidth, Align.left, true));
 	}
-	
+
 	@Override
 	public FloatRectangle getBoundsCentered(String text, float maxWidth) {
-		return getBoundsFromGlyphLayout(new GlyphLayout(fontHolder.getFont(), text, Color.WHITE, maxWidth, Align.center, true));
+		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text, Color.WHITE, maxWidth, Align.center, true));
 	}
 
 	@Override
@@ -136,7 +182,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		return new FlashyText(text, tint) {
 			@Override
 			protected GlyphLayout createLayout(BitmapFont bitmapFont, String text) {
-				return new GlyphLayout(bitmapFont, text);
+				return newGlyphLayout(bitmapFont, text);
 			}
 		};
 	}
@@ -147,7 +193,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		return new FlashyText(text, tint) {
 			@Override
 			protected GlyphLayout createLayout(BitmapFont bitmapFont, String text) {
-				return new GlyphLayout(bitmapFont, text, bitmapFont.getColor(), maxWidth, Align.left, true);
+				return newGlyphLayout(bitmapFont, text, bitmapFont.getColor(), maxWidth, Align.left, true);
 			}
 		};
 	}
@@ -157,9 +203,17 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		return new FlashyText(text, tint) {
 			@Override
 			protected GlyphLayout createLayout(BitmapFont bitmapFont, String text) {
-				return new GlyphLayout(bitmapFont, text, bitmapFont.getColor(), maxWidth, Align.center, true);
+				return newGlyphLayout(bitmapFont, text, bitmapFont.getColor(), maxWidth, Align.center, true);
 			}
 		};
+	}
+	
+	public FlashyBitmapFont withLineHeightScale(float scale) {
+		return new FlashyBitmapFont(fontHolder.fileHandle, scale);
+	}
+	
+	public float getLineHeightScale() {
+		return lineHeightScale;
 	}
 
 	private static class LazyBitmapFont {
