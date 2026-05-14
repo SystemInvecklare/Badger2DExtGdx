@@ -238,11 +238,11 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		private final Color colorCacheKey = new Color();
 		private GlyphLayout glyphLayout;
 		private FloatRectangle bounds;
+		private boolean initialized = false;
 
 		public FlashyText(String text, Color color) {
 			this.text = text;
 			this.color = color;
-			refresh();
 		}
 		
 		private void refresh() {
@@ -255,7 +255,15 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		
 		protected abstract GlyphLayout createLayout(BitmapFont bitmapFont, String text);
 		
+		private void assertInitialized() {
+			if(!initialized) {
+				initialized = true;
+				refresh();
+			}			
+		}
+		
 		private void assertFresh() {
+			assertInitialized();
 			if(!colorCacheKey.equals(color)) {
 				refresh();
 			}
@@ -263,6 +271,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 
 		@Override
 		public IFloatRectangle getBounds() {
+			assertInitialized();
 			return bounds;
 		}
 

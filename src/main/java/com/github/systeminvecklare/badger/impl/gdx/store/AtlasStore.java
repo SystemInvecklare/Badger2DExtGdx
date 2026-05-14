@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
@@ -79,7 +78,7 @@ public class AtlasStore {
 		public final TextureFilter minFilter;
 		public final TextureFilter magFilter;
 		public final Map<String, PackedTextureTemplate> regions = new LinkedHashMap<String, PackedTextureTemplate>();
-		public TextureAtlas overflowAtlas;
+		public FileLoadedAtlas overflowAtlas;
 
 		public FileLoadedAtlas(FileHandle texturePath, TextureFilter minFilter, TextureFilter magFilter) {
 			this.texturePath = texturePath;
@@ -119,6 +118,11 @@ public class AtlasStore {
 
 		@Override
 		public boolean contains(String texture) {
+			if(overflowAtlas != null) {
+				if(overflowAtlas.contains(texture)) {
+					return true;
+				}
+			}
 			return regions.containsKey(texture);
 		}
 	}
@@ -133,6 +137,7 @@ public class AtlasStore {
 	}
 	
 	private static FileLoadedAtlas loadAtlasFromFile(FileHandle path, FileHandle file) throws IOException {
+		//TODO don't use JsonReader. Probably fine here since the depths is not too bad but still..
 		JsonValue jsonReader = new JsonReader().parse(file);
 		
 		FileLoadedAtlas overflowAtlas = null;
@@ -156,7 +161,7 @@ public class AtlasStore {
 			}
 		}
 		if(overflowAtlas != null) {
-			fileLoadedAtlas.overflowAtlas = TextureAtlas.fromFile(overflowAtlas);
+			fileLoadedAtlas.overflowAtlas = overflowAtlas;
 		}
 		return fileLoadedAtlas;
 	}
@@ -175,13 +180,16 @@ public class AtlasStore {
 		private TextureAtlas overflowAtlas = null;
 		
 		public TextureAtlas(FileLoadedAtlas atlas) {
+			//TODO use asset loader?
 			this.texture = new Texture(atlas.texturePath);
 			this.texture.setWrap(DEFAULT_WRAP, DEFAULT_WRAP);
 			this.texture.setFilter(atlas.minFilter, atlas.magFilter);
 			for(Entry<String, PackedTextureTemplate> entry : atlas.regions.entrySet()) {
 				regions.put(entry.getKey(), entry.getValue().create(this.texture));
 			}
-			this.overflowAtlas = atlas.overflowAtlas;
+			if(atlas.overflowAtlas != null) {
+				this.overflowAtlas = TextureAtlas.fromFile(atlas.overflowAtlas);
+			}
 		}
 
 		public static TextureAtlas fromFile(FileLoadedAtlas atlas) {
