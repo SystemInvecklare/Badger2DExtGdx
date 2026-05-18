@@ -6,29 +6,24 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
-import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.glutils.FrameBuffer;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.JsonWriter;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.github.systeminvecklare.badger.core.math.Mathf;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasBuilder;
 import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasConstruction;
 import com.github.systeminvecklare.badger.impl.gdx.store.atlas.ITextureAtlas;
+import com.github.systeminvecklare.badger.impl.gdx.util.TextureSaver;
 
 public class AtlasStore {
 	private static final TextureWrap DEFAULT_WRAP = TextureWrap.ClampToEdge;
@@ -83,7 +78,7 @@ public class AtlasStore {
 		public final TextureFilter minFilter;
 		public final TextureFilter magFilter;
 		public final Map<String, PackedTextureTemplate> regions = new LinkedHashMap<String, PackedTextureTemplate>();
-		public TextureAtlas overflowAtlas;
+		public FileLoadedAtlas overflowAtlas;
 
 		public FileLoadedAtlas(FileHandle texturePath, TextureFilter minFilter, TextureFilter magFilter) {
 			this.texturePath = texturePath;
@@ -123,6 +118,11 @@ public class AtlasStore {
 
 		@Override
 		public boolean contains(String texture) {
+			if(overflowAtlas != null) {
+				if(overflowAtlas.contains(texture)) {
+					return true;
+				}
+			}
 			return regions.containsKey(texture);
 		}
 	}
@@ -160,7 +160,7 @@ public class AtlasStore {
 			}
 		}
 		if(overflowAtlas != null) {
-			fileLoadedAtlas.overflowAtlas = TextureAtlas.fromFile(overflowAtlas);
+			fileLoadedAtlas.overflowAtlas = overflowAtlas;
 		}
 		return fileLoadedAtlas;
 	}
@@ -179,13 +179,17 @@ public class AtlasStore {
 		private TextureAtlas overflowAtlas = null;
 		
 		public TextureAtlas(FileLoadedAtlas atlas) {
+			//TODO use asset loader?
+			
 			this.texture = new Texture(atlas.texturePath);
 			this.texture.setWrap(DEFAULT_WRAP, DEFAULT_WRAP);
 			this.texture.setFilter(atlas.minFilter, atlas.magFilter);
 			for(Entry<String, PackedTextureTemplate> entry : atlas.regions.entrySet()) {
 				regions.put(entry.getKey(), entry.getValue().create(this.texture));
 			}
-			this.overflowAtlas = atlas.overflowAtlas;
+			if(atlas.overflowAtlas != null) {
+				this.overflowAtlas = TextureAtlas.fromFile(atlas.overflowAtlas);
+			}
 		}
 
 		public static TextureAtlas fromFile(FileLoadedAtlas atlas) {
@@ -268,7 +272,7 @@ public class AtlasStore {
 		}
 		
 		private void save(FileHandle path, String imageName, String jsonName, String overflowAtlasJsonNameOrNull) throws IOException {
-			saveTexture(path.child(imageName));
+			TextureSaver.saveTexture(path.child(imageName), texture);
 			
 			FileHandle jsonFilePath = path.child(jsonName);
 			JsonWriter writer = new JsonWriter(jsonFilePath.writer(false, "utf-8"));
@@ -296,51 +300,6 @@ public class AtlasStore {
 			} finally {
 				writer.close();
 			}
-		}
-		
-		private void saveTexture(FileHandle imageFile) {
-		    int w = texture.getWidth();
-		    int h = texture.getHeight();
-
-		    FrameBuffer fbo = new FrameBuffer(Pixmap.Format.RGBA8888, w, h, false);
-		    SpriteBatch batch = new SpriteBatch();
-		    
-		    batch.setBlendFunction(GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
-		    
-		    fbo.begin();
-
-		    Gdx.gl.glViewport(0, 0, w, h);
-
-		    Gdx.gl.glClearColor(0, 0, 0, 0);
-		    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-		    batch.setProjectionMatrix(new Matrix4().setToOrtho2D(0, 0, w, h));
-
-		    batch.begin();
-
-		    batch.draw(texture, 0, 0, w, h);
-
-		    batch.end();
-
-		    Pixmap pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, w, h);
-
-		    fbo.end();
-
-		    Pixmap flipped = new Pixmap(w, h, pixmap.getFormat());
-
-		    for (int y = 0; y < h; y++) {
-		        for (int x = 0; x < w; x++) {
-		            flipped.drawPixel(x, h - 1 - y, pixmap.getPixel(x, y));
-		        }
-		    }
-
-		    pixmap.dispose();
-
-		    PixmapIO.writePNG(imageFile, flipped);
-		    flipped.dispose();
-
-		    batch.dispose();
-		    fbo.dispose();
 		}
 	}
 	

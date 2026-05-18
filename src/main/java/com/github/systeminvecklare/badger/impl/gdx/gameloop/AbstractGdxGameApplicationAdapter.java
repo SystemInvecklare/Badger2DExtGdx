@@ -21,6 +21,8 @@ import com.github.systeminvecklare.badger.core.graphics.framework.engine.inputpr
 import com.github.systeminvecklare.badger.core.graphics.framework.engine.inputprocessor.HeightSourcePixelTranslator;
 import com.github.systeminvecklare.badger.core.graphics.framework.engine.inputprocessor.IInputHandler;
 import com.github.systeminvecklare.badger.core.graphics.framework.engine.inputprocessor.IWindowCanvas;
+import com.github.systeminvecklare.badger.core.load.ILoadManager;
+import com.github.systeminvecklare.badger.core.load.LoadManager;
 import com.github.systeminvecklare.badger.core.math.Position;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyInputProcessor;
@@ -33,6 +35,7 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 	private GdxDrawCycle drawCycle;
 	private final float step;
 	private final IWindowCanvas windowCanvas = new GdxWindowCanvas();
+	private final ILoadManager loadManager = newLoadManager();
 	
 	protected boolean maintainScaledAspectRatio = false;
 	
@@ -59,8 +62,7 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 		return this;
 	}
 	
-	@Override
-	public void create () {
+	public void create(ILoadManager loadManager) {
 		FlashyGdxEngine.get().initPoolManagerOnThread();
 		resume();
 		this.startWidth = windowCanvas.getWidth();
@@ -72,7 +74,7 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 		
 		this.inputHandler = newFlashyInputHandler(pixelTranslator, maintainScaledAspectRatio ? windowCanvas : null);
 		
-		this.currentScene = getInitialScene();
+		this.currentScene = createLoadingScene(loadManager);
 		
 		this.gameLoop = new GameLoop(inputHandler, applicationContext, newGameLoopHooks(pixelTranslator, maintainScaledAspectRatio)) {
 			
@@ -95,6 +97,11 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 		this.currentScene.init();
 		
 		Gdx.input.setInputProcessor(new FlashyInputProcessor(inputHandler));
+	}
+	
+	@Override
+	public final void create() {
+		create(loadManager);
 	}
 	
 	protected IPixelTranslator newPixelTranslator() {
@@ -138,8 +145,14 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 	protected IGameLoopHooks newGameLoopHooks(IPixelTranslator pixelTranslator, boolean useLetterBoxing) {
 		return new GdxGameLoopHooks(pixelTranslator, useLetterBoxing);
 	}
+	
+	protected ILoadManager newLoadManager() {
+		return new LoadManager();
+	}
 
 	protected abstract IScene getInitialScene();
+	
+	protected abstract IScene createLoadingScene(ILoadManager loadManager);
 
 	@Override
 	public void render () {

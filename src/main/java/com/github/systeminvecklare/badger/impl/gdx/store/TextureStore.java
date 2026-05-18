@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
@@ -43,6 +44,7 @@ public class TextureStore {
 	private static List<Texture> managedTextures = new ArrayList<Texture>();
 	private static Map<String, BitmapFont> fonts = new HashMap<String, BitmapFont>();
 	private static List<IAtlasBuilder> textureAtlases = new ArrayList<IAtlasBuilder>(0);
+	private static AssetManager assetManager = null;
 	
 	public static void registerTextureAtlas(IAtlasBuilder atlasBuilder) {
 		textureAtlases.add(atlasBuilder);
@@ -64,6 +66,10 @@ public class TextureStore {
 			font = loadFont(fontName);
 		}
 		return font;
+	}
+	
+	public static void setAssetManager(AssetManager assetManager) {
+		TextureStore.assetManager = assetManager;
 	}
 	
 	public static NinePatch getNinePatch(NinePatchDefinition ninePatchDefinition) {
@@ -101,8 +107,14 @@ public class TextureStore {
 		
 		if(result == null) {
 //			System.out.println(textureName+" RAW");
-			Texture texture = new Texture(FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.IMAGE, textureName));
-			managedTextures.add(texture);
+			String resolvedPath = FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.IMAGE, textureName).path();
+			Texture texture;
+			if(assetManager != null && assetManager.contains(resolvedPath)) {
+				texture = assetManager.get(resolvedPath, Texture.class);
+			} else {
+				texture = new Texture(resolvedPath);
+				managedTextures.add(texture);
+			}
 			texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
 			texture.setWrap(TextureWrap.ClampToEdge, TextureWrap.ClampToEdge);//TODO temp. Rather do a callback hook so you can do something to the texture based on name
 			result = new SingleTextureWrapper(texture);
