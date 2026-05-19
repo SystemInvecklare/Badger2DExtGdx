@@ -190,6 +190,16 @@ public class StrictJsonParser {
 							throw new RuntimeException("Invalid hex digit: " + hex);
 					}
 					builder.append((char) codePoint);
+				} else if(c == 'n') {
+					builder.append("\n");
+				} else if(c == 'r') {
+					builder.append("\r");
+				} else if(c == 't') {
+					builder.append("\t");
+				} else if(c == '"') {
+					builder.append("\"");
+				} else if(c == '\\') {
+					builder.append("\\");
 				} else {
 					builder.append(c);
 				}
