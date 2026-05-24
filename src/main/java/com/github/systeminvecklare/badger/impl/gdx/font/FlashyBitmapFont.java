@@ -19,6 +19,8 @@ import com.github.systeminvecklare.badger.core.util.FloatRectangle;
 import com.github.systeminvecklare.badger.core.util.IFloatRectangle;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboDefinition;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboManager;
 import com.github.systeminvecklare.badger.impl.gdx.file.FileTypes;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
@@ -233,12 +235,35 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 	}
 	
 	private abstract class FlashyText implements IFlashyText {
+		private final IFboManager fboManager = FlashyGdxEngine.get().getFboManager();
 		private final String text;
 		private final Color color;
 		private final Color colorCacheKey = new Color();
 		private GlyphLayout glyphLayout;
 		private FloatRectangle bounds;
 		private boolean initialized = false;
+		private final IFboDefinition TEMP_test = new IFboDefinition() {
+			@Override
+			public int getX() {
+				//TODO round down or something
+				return (int) bounds.getX();
+			}
+			
+			@Override
+			public int getY() {
+				return (int) bounds.getY();
+			}
+			
+			@Override
+			public int getWidth() {
+				return (int) bounds.getWidth();
+			}
+			
+			@Override
+			public int getHeight() {
+				return (int) bounds.getHeight();
+			}
+		};
 
 		public FlashyText(String text, Color color) {
 			this.text = text;
@@ -251,6 +276,8 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 			this.glyphLayout = createLayout(bitmapFont, text);
 			colorCacheKey.set(color);
 			this.bounds = getBoundsFromGlyphLayout(glyphLayout);
+			fboManager.setRectangleDirty(TEMP_test);
+			fboManager.setDirty(TEMP_test);
 		}
 		
 		protected abstract GlyphLayout createLayout(BitmapFont bitmapFont, String text);
@@ -278,6 +305,17 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		@Override
 		public void draw(IDrawCycle drawCycle, float x, float y) {
 			assertFresh();
+			//TODO Hmm.... When enabling this for text, other stuff gets fucked up. Why?
+			//     Does it have to do with the mult on the transform?
+//			drawCycle.getTransform().mult(drawCycle.borrowUtility().setToIdentity().setPosition(x,y));
+//			if(fboManager.drawCached(drawCycle, TEMP_test)) {
+//				GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
+//				gdxDrawCycle.updateSpriteBatchTransform();
+//				SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
+//				FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, 0, 0);
+//				fboManager.done();
+//			}
+			
 			GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
 			gdxDrawCycle.updateSpriteBatchTransform();
 			SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();

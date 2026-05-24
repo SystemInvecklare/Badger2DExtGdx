@@ -28,12 +28,13 @@ import com.github.systeminvecklare.badger.core.util.PoolableArrayOf16Floats;
 import com.github.systeminvecklare.badger.impl.gdx.audio.FlashySound;
 import com.github.systeminvecklare.badger.impl.gdx.audio.IFlashySoundDelegate;
 import com.github.systeminvecklare.badger.impl.gdx.audio.NonThreadedFlashySoundDelegate;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.ICleanableFboManager;
 import com.github.systeminvecklare.badger.impl.gdx.file.GdxFileResolver;
 import com.github.systeminvecklare.badger.impl.gdx.file.IFileResolver;
 import com.github.systeminvecklare.badger.impl.gdx.file.OverloadingFileResolver;
 import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
 
-public class FlashyGdxEngine implements IFlashyEngine {
+public class FlashyGdxEngine extends GwtSafeFlashyGdxEngineBase implements IFlashyEngine {
 	private IFileResolver fileResolver = GdxFileResolver.INTERNAL;
 	
 	private IPoolManager poolManager;
