@@ -115,6 +115,7 @@ public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopH
 			}
 			
 			if(fboManager != null) {
+				spriteBatch.flush(); //TODO don't
 				fboManager.onAfterSceneDraw();
 			}
 		}

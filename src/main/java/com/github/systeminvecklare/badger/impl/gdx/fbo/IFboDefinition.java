@@ -6,4 +6,5 @@ public interface IFboDefinition {
 	int getY();
 	int getWidth();
 	int getHeight();
+	String DEBUG_name();
 }

@@ -19,6 +19,7 @@ import com.github.systeminvecklare.badger.core.util.FloatRectangle;
 import com.github.systeminvecklare.badger.core.util.IFloatRectangle;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.FBO_DEBUG;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboDefinition;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboManager;
 import com.github.systeminvecklare.badger.impl.gdx.file.FileTypes;
@@ -263,6 +264,11 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 			public int getHeight() {
 				return (int) bounds.getHeight();
 			}
+			
+			@Override
+			public String DEBUG_name() {
+				return text;
+			}
 		};
 
 		public FlashyText(String text, Color color) {
@@ -305,21 +311,29 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		@Override
 		public void draw(IDrawCycle drawCycle, float x, float y) {
 			assertFresh();
-			//TODO Hmm.... When enabling this for text, other stuff gets fucked up. Why?
-			//     Does it have to do with the mult on the transform?
-//			drawCycle.getTransform().mult(drawCycle.borrowUtility().setToIdentity().setPosition(x,y));
-//			if(fboManager.drawCached(drawCycle, TEMP_test)) {
-//				GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
-//				gdxDrawCycle.updateSpriteBatchTransform();
-//				SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
-//				FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, 0, 0);
-//				fboManager.done();
-//			}
+			// Conclusions:
+			// * It's this code that fucks things up.
+			// * it is not the font drawing, since we get the exact problem with drawing sand,
+			// * It HAS to be related to the fboManager.drawCached, because commenting out only whose rows disappears the problem.
+			// * It is either the transform that gets fucked up, OR it is the fbo target. Hmm. or some other gl state
+			// * Since the code paths are the same AFTER space has been held, it means the code is not the problem.
+			//   similarly, it can't be the transform nor the gl state.
+			//   THE ONLY difference is if fbos are created during the frame! <-- Look into this
+			// Note: When an FBO builds it bind texture. Not sure if relevant.
+			//
+			// --> SOLUTION: Constructing an FBO while inside fbo.begin()->fbo.end() messes with the state!
 			
-			GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
-			gdxDrawCycle.updateSpriteBatchTransform();
-			SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
-			FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, x, y);
+			drawCycle.getTransform().mult(drawCycle.borrowUtility().setToIdentity().setPosition(x,y));
+			FBO_DEBUG.println("Drawing start - of "+text);
+			if(fboManager.drawCached(drawCycle, TEMP_test)) {
+				GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
+				gdxDrawCycle.updateSpriteBatchTransform();
+				SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
+				FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, 0, 0);
+				fboManager.done();
+			}
+			// Restore transform
+			drawCycle.getTransform().mult(drawCycle.borrowUtility().setToIdentity().setPosition(-x,-y));
 		}
 		
 		@Override

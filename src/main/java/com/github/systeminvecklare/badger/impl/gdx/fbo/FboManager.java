@@ -16,7 +16,6 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Array;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
-import com.github.systeminvecklare.badger.core.math.Mathf;
 import com.github.systeminvecklare.badger.core.pooling.IPool;
 import com.github.systeminvecklare.badger.core.pooling.IPoolable;
 import com.github.systeminvecklare.badger.core.pooling.SimplePool;
@@ -44,28 +43,49 @@ public class FboManager implements IHookableFboManager {
 	//TODO Would be good if we could pass a Color also. That way FlashyBitmapFont could be written smartly and wouldn't need to re-render when color changes.
 	@Override
 	public boolean drawCached(IDrawCycle drawCycle, IFboDefinition definition) {
+		FBO_DEBUG.println("Begin drawCached "+definition.DEBUG_name());
 		AdhocFbo adhocFbo = fbos.get(definition);
 		if(adhocFbo == null) {
+			FboRendering ongoingRendering = null;
+			if(!renderingStack.isEmpty()) {
+				ongoingRendering = renderingStack.peek();
+				ongoingRendering.spriteBatch.flush();
+				ongoingRendering.adhocFbo.fbo.end(); // Pause fbo
+			}
+			
+			// No fbo bound, so we can safely construct new fbo
 			adhocFbo = new AdhocFbo(definition);
+			
+			if(ongoingRendering != null) {
+				ongoingRendering.adhocFbo.fbo.begin(); // Resume fbo
+			}
 			fbos.put(definition, adhocFbo);
 		}
 		adhocFbo.renderedThisFrame = true;
 		
 		if(adhocFbo.fbo.isEmpty()) {
+			FBO_DEBUG.println("It's empty");
+			FBO_DEBUG.println("drawCached DONE");
 			return false; // Fbo is empty. No need to render anything
 		}
 		
 		if(!adhocFbo.dirty) {
+			FBO_DEBUG.println("It's clean! Let's redraw texture!");
 			GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
 			gdxDrawCycle.updateSpriteBatchTransform();
 			SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
-//			spriteBatch.setColor(adhocFbo.color);
-			spriteBatch.setColor(new Color(Mathf.random(), Mathf.random(), Mathf.random(), 1)); //TODO remove
-			spriteBatch.draw(adhocFbo.textureRegion, adhocFbo.x, adhocFbo.y);
+			FBO_DEBUG.println("Drawing texture with "+FBO_DEBUG.getSpritebatchCombined(spriteBatch));
+			//TODO reuse color object
+			Color previousColor = new Color(spriteBatch.getColor());
+			spriteBatch.setColor(adhocFbo.color);
+			adhocFbo.draw(spriteBatch);
+//			spriteBatch.draw(adhocFbo.textureRegion, adhocFbo.x, adhocFbo.y);
+			spriteBatch.setColor(previousColor);
+			FBO_DEBUG.println("drawCached DONE");
 			return false;
 		}
 		
-		
+		// 1. Create new FboRendering on top
 		FboRendering currentRendering = renderingPool.obtain();
 		if(!renderingStack.isEmpty()) {
 			currentRendering.parentRendering = renderingStack.peek();
@@ -78,27 +98,40 @@ public class FboManager implements IHookableFboManager {
 		GdxDrawCycle gdxDrawCycle = currentRendering.drawCycle;
 		currentRendering.spriteBatch = gdxDrawCycle.getSpriteBatch();
 		SpriteBatch spriteBatch = currentRendering.spriteBatch;
+		
+		
+		// 2. store current state
+		currentRendering.originalProjectionMatrix.set(spriteBatch.getProjectionMatrix());
+		currentRendering.original.setTo(gdxDrawCycle.getTransform());
+		
+		gdxDrawCycle.updateSpriteBatchTransform(); //TODO only for debug
+		FBO_DEBUG.println("Stored state "+FBO_DEBUG.getSpritebatchCombined(spriteBatch));
+		
+		// 3. flush + end previous fbo OR to nothing (if to screen).
 		spriteBatch.flush();
 		
 		if(currentRendering.parentRendering != null) {
 			currentRendering.parentRendering.spriteBatch.flush();
 			currentRendering.parentRendering.adhocFbo.fbo.end();
+			FBO_DEBUG.println("Ended parent rendering.");
 		}
 		
-		currentRendering.originalProjectionMatrix.set(spriteBatch.getProjectionMatrix());
-		currentRendering.originalTransformMatrix.set(spriteBatch.getTransformMatrix());
+		// 4. begin current fbo
+		FBO_DEBUG.println("Begin new fbo");
+		adhocFbo.fbo.begin();
 		
-		currentRendering.original.setTo(drawCycle.getTransform());
-		drawCycle.getTransform().setToIdentity();
+		// 5. set current state to clean-slate
+		spriteBatch.setProjectionMatrix(utilMatrix.setToOrtho2D(currentRendering.adhocFbo.x, currentRendering.adhocFbo.y, currentRendering.adhocFbo.fbo.getWidth(), currentRendering.adhocFbo.fbo.getHeight()));
+		gdxDrawCycle.getTransform().setToIdentity();
 		gdxDrawCycle.updateSpriteBatchTransform();
 		
-		spriteBatch.setProjectionMatrix(utilMatrix.setToOrtho2D(currentRendering.adhocFbo.x, currentRendering.adhocFbo.y, currentRendering.adhocFbo.fbo.getWidth(), currentRendering.adhocFbo.fbo.getHeight()));
-		spriteBatch.setTransformMatrix(utilMatrix.idt());
-		adhocFbo.fbo.begin();
+		FBO_DEBUG.println("Set clean-slate state: "+FBO_DEBUG.getSpritebatchCombined(spriteBatch));
+		
+		
 		Gdx.gl.glClearColor(0, 0, 0, 0);
-//		Gdx.gl.glClearColor(Mathf.random(), Mathf.random(), Mathf.random(), 0.5f); // Useful for a visual representation of when things are redrawn
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		
+		// 6. render
 		return true;
 	}
 	
@@ -133,29 +166,46 @@ public class FboManager implements IHookableFboManager {
 
 	@Override
 	public void done() {
+		// 7. flush + end current fbo
 		FboRendering currentRendering = renderingStack.pop();
 		currentRendering.spriteBatch.flush();
 		currentRendering.adhocFbo.fbo.end();
 		currentRendering.adhocFbo.dirty = false;
+		FBO_DEBUG.println("Ended rendering.");
 		
+		// 8. begin previous fbo
 		if(currentRendering.parentRendering != null) {
 			currentRendering.parentRendering.adhocFbo.fbo.begin();
+			FBO_DEBUG.println("Began parent rendering (again).");
 		}
 		
+		// 9. restore state
 		currentRendering.spriteBatch.setProjectionMatrix(currentRendering.originalProjectionMatrix);
-		currentRendering.spriteBatch.setTransformMatrix(currentRendering.originalTransformMatrix);
 		currentRendering.drawCycle.getTransform().setTo(currentRendering.original);
 		currentRendering.drawCycle.updateSpriteBatchTransform();
+		
+		FBO_DEBUG.println("Restored state to: "+FBO_DEBUG.getSpritebatchCombined(currentRendering.spriteBatch));
+		
+		
+		// 10. draw rendered texture
+		//TODO reuse Color object
+		Color previousColor = new Color(currentRendering.spriteBatch.getColor());
 		currentRendering.spriteBatch.setColor(currentRendering.adhocFbo.color);
-		currentRendering.spriteBatch.draw(currentRendering.adhocFbo.textureRegion, currentRendering.adhocFbo.x, currentRendering.adhocFbo.y);
+		FBO_DEBUG.println("Drawing newly rendered");
+		currentRendering.adhocFbo.draw(currentRendering.spriteBatch);
+//		currentRendering.spriteBatch.draw(currentRendering.adhocFbo.textureRegion, currentRendering.adhocFbo.x, currentRendering.adhocFbo.y);
+		currentRendering.spriteBatch.setColor(previousColor);
 		
 		currentRendering.clear();
+		FBO_DEBUG.println("drawCached DONE");
 	}
 	
 
 	@Override
 	public void onAfterSceneDraw() {
 		//TODO make sure rendering stack is empty. Otherwise throw
+
+		FBO_DEBUG.println("---cleaning up!---");
 		
 		Iterator<Entry<IFboDefinition, AdhocFbo>> iterator = fbos.entrySet().iterator();
 		while(iterator.hasNext()) {
@@ -164,10 +214,13 @@ public class FboManager implements IHookableFboManager {
 			if(!adhocFbo.renderedThisFrame) {
 				adhocFbo.dispose();
 				iterator.remove();
+				FBO_DEBUG.println("Removed "+adhocFbo.DEBUG_def.DEBUG_name());
 			} else {
 				adhocFbo.renderedThisFrame = false;
 			}
 		}
+		FBO_DEBUG.println("----FRAME END---");
+		FBO_DEBUG.commit();
 	}
 	
 	private static class FboRendering implements IPoolable {
@@ -179,7 +232,6 @@ public class FboManager implements IHookableFboManager {
 		private FboRendering parentRendering;
 		
 		private final Matrix4 originalProjectionMatrix = new Matrix4();
-		private final Matrix4 originalTransformMatrix = new Matrix4();
 		private final ITransform original = new GdxTransform(null);
 		
 		public FboRendering(IPool<FboRendering> pool) {
@@ -207,8 +259,11 @@ public class FboManager implements IHookableFboManager {
 		private int y;
 		private boolean dirty = true;
 		private boolean renderedThisFrame = false;
+		private boolean disposed = false; //TODO needed?
+		private final IFboDefinition DEBUG_def;
 		
 		public AdhocFbo(IFboDefinition definition) {
+			this.DEBUG_def = definition;
 			//TODO we should allow for fbos to change size (also sets dirty)
 			int width = definition.getWidth();
 			int height = definition.getHeight();
@@ -226,27 +281,39 @@ public class FboManager implements IHookableFboManager {
 			this.textureRegion.flip(false, true);
 		}
 		
-		public void refreshRectangle(IFboDefinition definition) {
-			int newX = definition.getX();
-			int newY = definition.getY();
-			int newWidth = definition.getWidth();
-			int newHeight = definition.getHeight();
-			if(newWidth != textureRegion.getRegionWidth() || newHeight != textureRegion.getRegionHeight() ||  x != newX || y != newY) {
-				// Change detected
-				dirty = true;
-				int potWidth = nextPowerOfTwo(newWidth);
-				int potHeight = nextPowerOfTwo(newHeight);
-				if(potWidth != fbo.getWidth() || potHeight != fbo.getHeight()) {
-					fbo.dispose();
-					fbo = newFrameBuffer(potWidth, potHeight);
-					
-					fbo.setupRegion(textureRegion, newWidth, newHeight);
-				}
-				textureRegion.setRegionWidth(newWidth);
-				textureRegion.setRegionWidth(newHeight);
-				this.x = newX;
-				this.y = newY;
+		public void draw(SpriteBatch spriteBatch) {
+			if(disposed) {
+				throw new RuntimeException("FBO is disposed!");
 			}
+			if(fbo.isEmpty()) {
+				throw new RuntimeException("FBO is empty! Should never have gotten to this");
+			}
+			spriteBatch.draw(textureRegion, x, y);
+		}
+
+		public void refreshRectangle(IFboDefinition definition) {
+			//TODO
+			throw new RuntimeException("TODO don't do this immediately. Wait until start of next frame or something. Or before we actually try to use this. We need to make sure no FBO is bound.");
+//			int newX = definition.getX();
+//			int newY = definition.getY();
+//			int newWidth = definition.getWidth();
+//			int newHeight = definition.getHeight();
+//			if(newWidth != textureRegion.getRegionWidth() || newHeight != textureRegion.getRegionHeight() ||  x != newX || y != newY) {
+//				// Change detected
+//				dirty = true;
+//				int potWidth = nextPowerOfTwo(newWidth);
+//				int potHeight = nextPowerOfTwo(newHeight);
+//				if(potWidth != fbo.getWidth() || potHeight != fbo.getHeight()) {
+//					fbo.dispose();
+//					fbo = newFrameBuffer(potWidth, potHeight);
+//					
+//					fbo.setupRegion(textureRegion, newWidth, newHeight);
+//				}
+//				textureRegion.setRegionWidth(newWidth);
+//				textureRegion.setRegionWidth(newHeight);
+//				this.x = newX;
+//				this.y = newY;
+//			}
 		}
 
 		private static int nextPowerOfTwo(int n) {
@@ -270,6 +337,7 @@ public class FboManager implements IHookableFboManager {
 		public void dispose() {
 			fbo.dispose();
 			fbo = null;
+			disposed = true;
 		}
 	}
 	
@@ -353,10 +421,12 @@ public class FboManager implements IHookableFboManager {
 
 		@Override
 		public void begin() {
+			throw new IllegalStateException();
 		}
 
 		@Override
 		public void end() {
+			throw new IllegalStateException();
 		}
 
 		@Override
