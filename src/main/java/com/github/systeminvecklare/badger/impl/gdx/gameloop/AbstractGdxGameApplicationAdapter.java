@@ -64,6 +64,7 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 	
 	public void create(ILoadManager loadManager) {
 		FlashyGdxEngine.get().initPoolManagerOnThread();
+		FlashyGdxEngine.get().initFromRenderThread();
 		resume();
 		this.startWidth = windowCanvas.getWidth();
 		this.startHeight = windowCanvas.getHeight();

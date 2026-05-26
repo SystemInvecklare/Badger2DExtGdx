@@ -14,12 +14,24 @@ import com.github.systeminvecklare.badger.core.graphics.framework.engine.gameloo
 import com.github.systeminvecklare.badger.core.graphics.framework.engine.gameloop.IGameLoopHooks;
 import com.github.systeminvecklare.badger.core.math.Position;
 import com.github.systeminvecklare.badger.core.pooling.EasyPooler;
+import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboManager;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.IHookableFboManager;
 
 public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopHooks {
 	private final Texture texture = new Texture(1, 1, Format.RGB888);
 	private final IPixelTranslator pixelTranslator;
 	private final boolean useLetterboxing;
+	private final IHookableFboManager fboManager;
+	{
+		IFboManager fboManagerMaybe = FlashyGdxEngine.get().getFboManager();
+		if(fboManagerMaybe instanceof IHookableFboManager) {
+			fboManager = (IHookableFboManager) fboManagerMaybe;
+		} else {
+			fboManager = null;
+		}
+	}
 	
 	private ITransform originalTransform = null;
 
@@ -100,6 +112,10 @@ public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopH
 				}
 			} finally {
 				ep.freeAllAndSelf();
+			}
+			
+			if(fboManager != null) {
+				fboManager.onAfterSceneDraw();
 			}
 		}
 	}

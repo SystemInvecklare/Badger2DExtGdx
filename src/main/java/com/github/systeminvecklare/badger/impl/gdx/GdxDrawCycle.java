@@ -15,6 +15,7 @@ import com.github.systeminvecklare.badger.impl.gdx.vectorgraphics.IGdxVectorDraw
 
 public class GdxDrawCycle implements IDrawCycle {
 	private ITransform transform = FlashyEngine.get().getPoolManager().getPool(ITransform.class).obtain().setToIdentity();
+	private ITransform lendableUtility = FlashyEngine.get().getPoolManager().getPool(ITransform.class).obtain().setToIdentity();
 	private final float[] lastBoundTransform = new float[16];
 	private IShader shader;
 	private IShader lastBoundShader;
@@ -85,5 +86,10 @@ public class GdxDrawCycle implements IDrawCycle {
 	public IGdxVectorDrawer updateAndGetVectorDrawer() {
 		vectorDrawer.updateTransform(((GdxTransform) transform).getMatrix4());
 		return vectorDrawer;
+	}
+	
+	@Override
+	public ITransform borrowUtility() {
+		return lendableUtility;
 	}
 }

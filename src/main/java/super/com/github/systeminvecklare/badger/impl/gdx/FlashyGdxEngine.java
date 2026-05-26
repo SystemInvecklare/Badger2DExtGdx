@@ -33,7 +33,7 @@ import com.github.systeminvecklare.badger.impl.gdx.file.IFileResolver;
 import com.github.systeminvecklare.badger.impl.gdx.file.OverloadingFileResolver;
 import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
 
-public class FlashyGdxEngine implements IFlashyEngine {
+public class FlashyGdxEngine extends GwtSafeFlashyGdxEngineBase implements IFlashyEngine {
 	private IFileResolver fileResolver = GdxFileResolver.INTERNAL;
 	
 	private IPoolManager poolManager;
