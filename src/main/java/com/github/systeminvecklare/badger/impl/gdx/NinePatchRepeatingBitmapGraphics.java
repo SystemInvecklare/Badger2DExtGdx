@@ -8,6 +8,8 @@ import com.github.systeminvecklare.badger.core.graphics.components.moviecliplaye
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.widget.IRectangle;
 import com.github.systeminvecklare.badger.core.widget.PlaceholderWidget;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboHandle;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.SimpleFboHandle;
 import com.github.systeminvecklare.badger.impl.gdx.store.ITexture;
 import com.github.systeminvecklare.badger.impl.gdx.store.NinePatchDefinition;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
@@ -21,6 +23,7 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 	private NinePatchDefinition cacheKey = null;
 	private CachedSubTextures cachedSubTextures = null;
 	private final PlaceholderWidget rectangleCache = new PlaceholderWidget();
+	private final IFboHandle fboHandle;
 	
 	public NinePatchRepeatingBitmapGraphics(String texture, int inset, IRectangle rectangle) {
 		this(texture, inset, rectangle, Color.WHITE);
@@ -38,97 +41,102 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 		this.ninePatch = ninePatchDefinition;
 		this.rectangle = rectangle;
 		this.color = color;
+		this.fboHandle = new SimpleFboHandle(rectangle);
 	}
 
 	@Override
 	public void draw(IDrawCycle drawCycle) {
-		// Sample rectangle
-		rectangleCache.setTo(rectangle);
-		if(rectangleCache.getWidth() == 0 || rectangleCache.getHeight() == 0) {
-			return;
-		}
-		
-		GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
-		gdxDrawCycle.updateSpriteBatchTransform();
-		SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
-		spriteBatch.setColor(color);
-		final NinePatchDefinition ninePatch = getNinePatch();
-		ITexture texture = TextureStore.getTexture(ninePatch.textureName);
-		
-		int ninePatchLeft = ninePatch.left;
-		int ninePatchRight = ninePatch.right;
-		int ninePatchBottom = ninePatch.bottom;
-		int ninePatchTop = ninePatch.top;
-		//TODO Optimization: Cache on rectangle (x,y,width,height,ninepatch,texture) and render to separate texture (with Color.WHITE). In most cases these won't change and we can reuse the prerendered texture! (and if we do this we won't need to have the CachedSubTextures)
-		
-		final int ninePatchHorizontal = ninePatchLeft + ninePatchRight;
-		final int ninePatchVertical = ninePatchTop + ninePatchBottom;
-		
-		int horizontalInnerSpace = rectangleCache.getWidth() - ninePatchHorizontal;
-		int verticalInnerSpace = rectangleCache.getHeight() - ninePatchVertical;
-		
-		int bottomCornersMaxHeight = ninePatchBottom - ninePatchBottom*(ninePatchVertical - rectangleCache.getHeight())/ninePatchVertical;
-		int topCornersMaxHeight = rectangleCache.getHeight() - bottomCornersMaxHeight;
-		int rightCornersMaxWidth = ninePatchRight - ninePatchRight*(ninePatchHorizontal - rectangleCache.getWidth())/ninePatchHorizontal;
-		int leftCornersMaxWidth = rectangleCache.getWidth() - rightCornersMaxWidth;
-
-		ninePatchLeft = Math.min(ninePatchLeft, leftCornersMaxWidth);
-		ninePatchRight = Math.min(ninePatchRight, rightCornersMaxWidth);
-		ninePatchBottom = Math.min(ninePatchBottom, bottomCornersMaxHeight);
-		ninePatchTop = Math.min(ninePatchTop, topCornersMaxHeight);
-		
-		// Bottom left corner
-		texture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY(), ninePatchLeft, ninePatchBottom, 0, texture.getHeight()-ninePatchBottom, ninePatchLeft, ninePatchBottom, false, false);
-		
-		// Bottom right corner
-		texture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth()-ninePatchRight, rectangleCache.getY(), ninePatchRight, ninePatchBottom, texture.getWidth() - ninePatchRight, texture.getHeight()-ninePatchBottom, ninePatchRight, ninePatchBottom, false, false);
-		
-		// Top left corner
-		texture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY()+rectangleCache.getHeight() - ninePatchTop, ninePatchLeft, ninePatchTop, 0, 0, ninePatchLeft, ninePatchTop, false, false);
-		
-		// Top left corner
-		texture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth()-ninePatchRight, rectangleCache.getY()+rectangleCache.getHeight() - ninePatchTop, ninePatchRight, ninePatchTop, texture.getWidth() - ninePatchRight, 0, ninePatchRight, ninePatchTop, false, false);
-		
-		if(cacheKey == null || !cacheKey.equals(ninePatch)) {
-			cacheKey = ninePatch;
-			cachedSubTextures = new CachedSubTextures(cacheKey, texture);
-		}
-		
-		cachedSubTextures.invalidateIfTextureChanged(texture);
-		
-		if(horizontalInnerSpace > 0) {
-			{
-				ITexture subTexture = cachedSubTextures.getBottom(texture);
+		fboHandle.setRectangleDirty(); // Potentially dirty
+		if(fboHandle.drawCached(drawCycle)) {
+			// Sample rectangle
+			rectangleCache.setTo(rectangle);
+			if(rectangleCache.getWidth() == 0 || rectangleCache.getHeight() == 0) {
+				return;
+			}
+			
+			GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
+			gdxDrawCycle.updateSpriteBatchTransform();
+			SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
+			spriteBatch.setColor(color);
+			final NinePatchDefinition ninePatch = getNinePatch();
+			ITexture texture = TextureStore.getTexture(ninePatch.textureName);
+			
+			int ninePatchLeft = ninePatch.left;
+			int ninePatchRight = ninePatch.right;
+			int ninePatchBottom = ninePatch.bottom;
+			int ninePatchTop = ninePatch.top;
+			//TODO Optimization: Cache on rectangle (x,y,width,height,ninepatch,texture) and render to separate texture (with Color.WHITE). In most cases these won't change and we can reuse the prerendered texture! (and if we do this we won't need to have the CachedSubTextures)
+			
+			final int ninePatchHorizontal = ninePatchLeft + ninePatchRight;
+			final int ninePatchVertical = ninePatchTop + ninePatchBottom;
+			
+			int horizontalInnerSpace = rectangleCache.getWidth() - ninePatchHorizontal;
+			int verticalInnerSpace = rectangleCache.getHeight() - ninePatchVertical;
+			
+			int bottomCornersMaxHeight = ninePatchBottom - ninePatchBottom*(ninePatchVertical - rectangleCache.getHeight())/ninePatchVertical;
+			int topCornersMaxHeight = rectangleCache.getHeight() - bottomCornersMaxHeight;
+			int rightCornersMaxWidth = ninePatchRight - ninePatchRight*(ninePatchHorizontal - rectangleCache.getWidth())/ninePatchHorizontal;
+			int leftCornersMaxWidth = rectangleCache.getWidth() - rightCornersMaxWidth;
+			
+			ninePatchLeft = Math.min(ninePatchLeft, leftCornersMaxWidth);
+			ninePatchRight = Math.min(ninePatchRight, rightCornersMaxWidth);
+			ninePatchBottom = Math.min(ninePatchBottom, bottomCornersMaxHeight);
+			ninePatchTop = Math.min(ninePatchTop, topCornersMaxHeight);
+			
+			// Bottom left corner
+			texture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY(), ninePatchLeft, ninePatchBottom, 0, texture.getHeight()-ninePatchBottom, ninePatchLeft, ninePatchBottom, false, false);
+			
+			// Bottom right corner
+			texture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth()-ninePatchRight, rectangleCache.getY(), ninePatchRight, ninePatchBottom, texture.getWidth() - ninePatchRight, texture.getHeight()-ninePatchBottom, ninePatchRight, ninePatchBottom, false, false);
+			
+			// Top left corner
+			texture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY()+rectangleCache.getHeight() - ninePatchTop, ninePatchLeft, ninePatchTop, 0, 0, ninePatchLeft, ninePatchTop, false, false);
+			
+			// Top left corner
+			texture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth()-ninePatchRight, rectangleCache.getY()+rectangleCache.getHeight() - ninePatchTop, ninePatchRight, ninePatchTop, texture.getWidth() - ninePatchRight, 0, ninePatchRight, ninePatchTop, false, false);
+			
+			if(cacheKey == null || !cacheKey.equals(ninePatch)) {
+				cacheKey = ninePatch;
+				cachedSubTextures = new CachedSubTextures(cacheKey, texture);
+			}
+			
+			cachedSubTextures.invalidateIfTextureChanged(texture);
+			
+			if(horizontalInnerSpace > 0) {
+				{
+					ITexture subTexture = cachedSubTextures.getBottom(texture);
+					float drawWidth = rectangleCache.getWidth() - ninePatchHorizontal;
+					float drawHeight = Math.min(ninePatchBottom, bottomCornersMaxHeight);
+					subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY(), drawWidth, drawHeight, 0, 1, drawWidth/subTexture.getWidth(), 1f - drawHeight/subTexture.getHeight());
+				}
+				{
+					ITexture subTexture = cachedSubTextures.getTop(texture);
+					float drawWidth = rectangleCache.getWidth() - ninePatchHorizontal;
+					float drawHeight = Math.min(ninePatchTop, topCornersMaxHeight);
+					subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY()+rectangleCache.getHeight() - drawHeight, drawWidth, drawHeight, 0, drawHeight/subTexture.getHeight(), drawWidth/subTexture.getWidth(), 0);
+				}
+			}
+			if(verticalInnerSpace > 0) {
+				{
+					ITexture subTexture = cachedSubTextures.getLeft(texture);
+					float drawWidth = Math.min(ninePatchLeft, leftCornersMaxWidth);
+					float drawHeight = rectangleCache.getHeight() - ninePatchVertical;
+					subTexture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 0, 0, (drawWidth/subTexture.getWidth()), -drawHeight/subTexture.getHeight());
+				}
+				{
+					ITexture subTexture = cachedSubTextures.getRight(texture);
+					float drawWidth = Math.min(ninePatchRight, rightCornersMaxWidth);
+					float drawHeight = rectangleCache.getHeight() - ninePatchVertical;
+					subTexture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth() - drawWidth, rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 1f - (drawWidth/subTexture.getWidth()), 0, 1, -drawHeight/subTexture.getHeight());
+				}
+			}
+			if(drawMiddle() && verticalInnerSpace > 0 && horizontalInnerSpace > 0) {
+				ITexture subTexture = cachedSubTextures.getMiddle(texture);
 				float drawWidth = rectangleCache.getWidth() - ninePatchHorizontal;
-				float drawHeight = Math.min(ninePatchBottom, bottomCornersMaxHeight);
-				subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY(), drawWidth, drawHeight, 0, 1, drawWidth/subTexture.getWidth(), 1f - drawHeight/subTexture.getHeight());
-			}
-			{
-				ITexture subTexture = cachedSubTextures.getTop(texture);
-				float drawWidth = rectangleCache.getWidth() - ninePatchHorizontal;
-				float drawHeight = Math.min(ninePatchTop, topCornersMaxHeight);
-				subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY()+rectangleCache.getHeight() - drawHeight, drawWidth, drawHeight, 0, drawHeight/subTexture.getHeight(), drawWidth/subTexture.getWidth(), 0);
-			}
-		}
-		if(verticalInnerSpace > 0) {
-			{
-				ITexture subTexture = cachedSubTextures.getLeft(texture);
-				float drawWidth = Math.min(ninePatchLeft, leftCornersMaxWidth);
 				float drawHeight = rectangleCache.getHeight() - ninePatchVertical;
-				subTexture.draw(spriteBatch, rectangleCache.getX(), rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 0, 0, (drawWidth/subTexture.getWidth()), -drawHeight/subTexture.getHeight());
+				subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 0, 0, drawWidth/subTexture.getWidth(), -drawHeight/subTexture.getHeight());
 			}
-			{
-				ITexture subTexture = cachedSubTextures.getRight(texture);
-				float drawWidth = Math.min(ninePatchRight, rightCornersMaxWidth);
-				float drawHeight = rectangleCache.getHeight() - ninePatchVertical;
-				subTexture.draw(spriteBatch, rectangleCache.getX()+rectangleCache.getWidth() - drawWidth, rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 1f - (drawWidth/subTexture.getWidth()), 0, 1, -drawHeight/subTexture.getHeight());
-			}
-		}
-		if(drawMiddle() && verticalInnerSpace > 0 && horizontalInnerSpace > 0) {
-			ITexture subTexture = cachedSubTextures.getMiddle(texture);
-			float drawWidth = rectangleCache.getWidth() - ninePatchHorizontal;
-			float drawHeight = rectangleCache.getHeight() - ninePatchVertical;
-			subTexture.draw(spriteBatch, rectangleCache.getX()+ninePatchLeft, rectangleCache.getY()+ninePatchBottom, drawWidth, drawHeight, 0, 0, drawWidth/subTexture.getWidth(), -drawHeight/subTexture.getHeight());
+			fboHandle.done();
 		}
 	}
 
