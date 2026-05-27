@@ -132,7 +132,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		BitmapFont font = fontHolder.getFont();
 		if(fboBoundsOrNull != null) {
 			if(x != null && y != null) {
-				fboBoundsOrNull.setPosition(Mathf.floorToInt(x), Mathf.ceilToInt(y - glyphLayout.height + font.getDescent()));
+				fboBoundsOrNull.setPosition(Mathf.floorToInt(x), Mathf.ceilToInt(y - font.getCapHeight() + font.getDescent()));
 			} else {
 				fboBoundsOrNull.setPosition(0, 0);
 			}
@@ -251,10 +251,43 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		}
 	}
 	
+	private interface ICacheKey {
+		boolean matches(Color color);
+		void update(Color value);
+	}
+	
+	private static class AlphaCacheKey implements ICacheKey {
+		private float key = -1f;
+
+		@Override
+		public boolean matches(Color color) {
+			return key == color.a;
+		}
+		
+		@Override
+		public void update(Color value) {
+			this.key = value.a;
+		}
+	}
+	
+	private static class ColorCacheKey implements ICacheKey {
+		private final Color key = new Color();
+
+		@Override
+		public boolean matches(Color color) {
+			return key.equals(color);
+		}
+
+		@Override
+		public void update(Color value) {
+			key.set(value);
+		}
+	}
+	
 	private abstract class FlashyText implements IFlashyText {
 		private final String text;
 		private final Color color;
-		private float alphaCacheKey = -1f;
+		private final ICacheKey cacheKey;
 		private GlyphLayout glyphLayout;
 		private FloatRectangle bounds;
 		private final PlaceholderWidget fboBounds = new PlaceholderWidget();
@@ -264,6 +297,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		public FlashyText(IFboManager fboManager, String text, Color color) {
 			this.text = text;
 			this.color = color;
+			this.cacheKey = useFboManager ? new AlphaCacheKey() : new ColorCacheKey();
 			this.fboHandle = useFboManager ? new SimpleFboHandle(fboManager, fboBounds) : DisabledFboHandle.INSTANCE;
 		}
 		
@@ -271,10 +305,10 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 			BitmapFont bitmapFont = fontHolder.getFont();
 			Color semiTransparentColor = new Color(Color.WHITE);
 			semiTransparentColor.a = color.a;
-			bitmapFont.setColor(semiTransparentColor);
+			bitmapFont.setColor(useFboManager ? semiTransparentColor : color);
 			this.glyphLayout = createLayout(bitmapFont, text);
-			this.bounds = getBoundsFromGlyphLayout(glyphLayout, fboBounds);
-			alphaCacheKey = color.a;
+			this.bounds = getBoundsFromGlyphLayout(glyphLayout, useFboManager ? fboBounds : null);
+			cacheKey.update(color);
 			fboHandle.setRectangleDirty();
 			fboHandle.setDirty();
 		}
@@ -290,7 +324,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		
 		private void assertFresh() {
 			assertInitialized();
-			if(alphaCacheKey != color.a) {
+			if(!cacheKey.matches(color)) {
 				refresh();
 			}
 		}
