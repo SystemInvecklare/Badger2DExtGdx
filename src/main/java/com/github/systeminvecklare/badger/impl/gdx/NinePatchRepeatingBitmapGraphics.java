@@ -8,6 +8,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.moviecliplaye
 import com.github.systeminvecklare.badger.core.math.IReadablePosition;
 import com.github.systeminvecklare.badger.core.widget.IRectangle;
 import com.github.systeminvecklare.badger.core.widget.PlaceholderWidget;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.DisabledFboHandle;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboHandle;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.SimpleFboHandle;
 import com.github.systeminvecklare.badger.impl.gdx.store.ITexture;
@@ -15,6 +16,8 @@ import com.github.systeminvecklare.badger.impl.gdx.store.NinePatchDefinition;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
+	public static boolean useFboManagerDefault = true;
+	
 	private final NinePatchDefinition ninePatch;
 	private final IRectangle rectangle;
 	private final Color color;
@@ -38,10 +41,14 @@ public class NinePatchRepeatingBitmapGraphics implements IMovieClipLayer {
 	}
 	
 	public NinePatchRepeatingBitmapGraphics(NinePatchDefinition ninePatchDefinition, IRectangle rectangle, Color color) {
+		this(ninePatchDefinition, rectangle, color, useFboManagerDefault);
+	}
+	
+	public NinePatchRepeatingBitmapGraphics(NinePatchDefinition ninePatchDefinition, IRectangle rectangle, Color color, boolean useFbo) {
 		this.ninePatch = ninePatchDefinition;
 		this.rectangle = rectangle;
 		this.color = color;
-		this.fboHandle = new SimpleFboHandle(rectangle);
+		this.fboHandle = useFbo ? new SimpleFboHandle(rectangle) : DisabledFboHandle.INSTANCE;
 	}
 
 	@Override

@@ -21,6 +21,7 @@ import com.github.systeminvecklare.badger.core.util.IFloatRectangle;
 import com.github.systeminvecklare.badger.core.widget.PlaceholderWidget;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.DisabledFboHandle;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboHandle;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboManager;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.SimpleFboHandle;
@@ -28,6 +29,8 @@ import com.github.systeminvecklare.badger.impl.gdx.file.FileTypes;
 import com.github.systeminvecklare.badger.impl.gdx.store.TextureStore;
 
 public class FlashyBitmapFont implements IFlashyFont<Color> {
+	public static boolean useFboManager = true;
+	
 	private final LazyBitmapFont fontHolder;
 	private final float lineHeightScale;
 	private final IFboManager fboManager = FlashyGdxEngine.get().getFboManager();
@@ -255,13 +258,13 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		private GlyphLayout glyphLayout;
 		private FloatRectangle bounds;
 		private final PlaceholderWidget fboBounds = new PlaceholderWidget();
-		private final IFboHandle fboDefinition;
+		private final IFboHandle fboHandle;
 		private boolean initialized = false;
 
 		public FlashyText(IFboManager fboManager, String text, Color color) {
 			this.text = text;
 			this.color = color;
-			this.fboDefinition = new SimpleFboHandle(fboManager, fboBounds);
+			this.fboHandle = useFboManager ? new SimpleFboHandle(fboManager, fboBounds) : DisabledFboHandle.INSTANCE;
 		}
 		
 		private void refresh() {
@@ -272,8 +275,8 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 			this.glyphLayout = createLayout(bitmapFont, text);
 			this.bounds = getBoundsFromGlyphLayout(glyphLayout, fboBounds);
 			alphaCacheKey = color.a;
-			fboDefinition.setRectangleDirty();
-			fboDefinition.setDirty();
+			fboHandle.setRectangleDirty();
+			fboHandle.setDirty();
 		}
 		
 		protected abstract GlyphLayout createLayout(BitmapFont bitmapFont, String text);
@@ -302,14 +305,14 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		public void draw(IDrawCycle drawCycle, float x, float y) {
 			assertFresh();
 			drawCycle.getTransform().mult(drawCycle.borrowUtility().setToIdentity().setPosition(x,y));
-			fboDefinition.setTint(color); // Sets IF fbo exists and cached will be used
-			if(fboDefinition.drawCached(drawCycle)) {
-				fboDefinition.setTint(color); // Sets if fbo just created (so both sets are needed)
+			fboHandle.setTint(color); // Sets IF fbo exists and cached will be used
+			if(fboHandle.drawCached(drawCycle)) {
+				fboHandle.setTint(color); // Sets if fbo just created (so both sets are needed)
 				GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
 				gdxDrawCycle.updateSpriteBatchTransform();
 				SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
 				FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, 0, 0);
-				fboDefinition.done();
+				fboHandle.done();
 			}
 			// Restore transform
 			drawCycle.getTransform().mult(drawCycle.borrowUtility().setToIdentity().setPosition(-x,-y));
