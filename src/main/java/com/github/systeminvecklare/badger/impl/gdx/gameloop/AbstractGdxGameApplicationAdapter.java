@@ -27,6 +27,8 @@ import com.github.systeminvecklare.badger.core.math.Position;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyInputProcessor;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
+import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboManager;
+import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
 
 public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapter implements ISceneManager {
 	private IScene currentScene;
@@ -254,6 +256,18 @@ public abstract class AbstractGdxGameApplicationAdapter extends ApplicationAdapt
 		this.applicationContext.dispose(); //Do this?
 		this.applicationContext = null;
 		super.dispose();
+	}
+	
+	@Override
+	public void resize(int width, int height) {
+		super.resize(width, height);
+		FlashyGdxEngine flashyGdxEngine = FlashyGdxEngine.get();
+		if(flashyGdxEngine != null) {
+			IFboManager fboManager = flashyGdxEngine.getFboManager();
+			if(fboManager != null && fboManager instanceof IStore) {
+				((IStore) fboManager).disposeInventory();
+			}
+		}
 	}
 	
 	@Override
