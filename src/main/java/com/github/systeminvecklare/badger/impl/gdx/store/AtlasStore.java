@@ -20,6 +20,7 @@ import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.JsonWriter;
 import com.github.systeminvecklare.badger.core.math.Mathf;
 import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
+import com.github.systeminvecklare.badger.impl.gdx.file.FileTypes;
 import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasBuilder;
 import com.github.systeminvecklare.badger.impl.gdx.store.atlas.IAtlasConstruction;
 import com.github.systeminvecklare.badger.impl.gdx.store.atlas.ITextureAtlas;
@@ -133,7 +134,8 @@ public class AtlasStore {
 	
 	public static IAtlasBuilder loadAtlasFromFile(FileHandle path, String atlasName) throws IOException {
 		FileHandle file = path.child(atlasName+"_0.json");
-		return loadAtlasFromFile(path, file);
+		FileHandle resolvedFile = FlashyGdxEngine.get().getFileResolver().resolve(FileTypes.ATLAS_JSON, file.path());
+		return loadAtlasFromFile(path, resolvedFile);
 	}
 	
 	private static FileLoadedAtlas loadAtlasFromFile(FileHandle path, FileHandle file) throws IOException {

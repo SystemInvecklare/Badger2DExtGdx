@@ -7,6 +7,7 @@ public class FileTypes {
 	public static IFileType AUDIO = new FileType();
 	public static IFileType SHADER = new FileType();
 	public static IFileType FONT = new FileType();
+	public static IFileType ATLAS_JSON = new FileType();
 	public static IFileType OTHER = new FileType();
 	
 	private static class FileType implements IFileType {
