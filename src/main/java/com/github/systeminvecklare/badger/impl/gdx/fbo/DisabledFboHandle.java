@@ -18,6 +18,11 @@ public class DisabledFboHandle implements IFboHandle {
 	@Override
 	public void setDirty() {
 	}
+	
+	@Override
+	public boolean failed() {
+		return false;
+	}
 
 	@Override
 	public void setRectangleDirty() {

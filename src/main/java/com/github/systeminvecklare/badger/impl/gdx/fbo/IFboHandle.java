@@ -6,6 +6,7 @@ import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCyc
 public interface IFboHandle {
 	boolean drawCached(IDrawCycle drawCycle);
 	void done();
+	boolean failed();
 	void setDirty();
 	void setRectangleDirty();
 	void setTint(Color tint);

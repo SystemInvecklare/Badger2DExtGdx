@@ -75,4 +75,9 @@ public class SimpleFboHandle implements IFboHandle, IFboDefinition {
 	public void done() {
 		fboManager.done();
 	}
+	
+	@Override
+	public boolean failed() {
+		return fboManager.failed();
+	}
 }

@@ -52,8 +52,7 @@ public class FboManager implements IHookableFboManager, IStore {
 			FboRendering ongoingRendering = null;
 			if(!renderingStack.isEmpty()) {
 				ongoingRendering = renderingStack.peek();
-				ongoingRendering.spriteBatch.flush();
-				ongoingRendering.adhocFbo.fbo.end(); // Pause fbo
+				ongoingRendering.flushAndEnd(); // Pause fbo
 			}
 			
 			// No fbo bound, so we can safely construct new fbo
@@ -72,8 +71,7 @@ public class FboManager implements IHookableFboManager, IStore {
 			FboRendering ongoingRendering = null;
 			if(!renderingStack.isEmpty()) {
 				ongoingRendering = renderingStack.peek();
-				ongoingRendering.spriteBatch.flush();
-				ongoingRendering.adhocFbo.fbo.end(); // Pause fbo
+				ongoingRendering.flushAndEnd();// Pause fbo
 			}
 			
 			// No fbo bound, so we can safely run code that potentially creates new fbo
@@ -86,6 +84,14 @@ public class FboManager implements IHookableFboManager, IStore {
 		
 		if(adhocFbo.fbo.isEmpty()) {
 			return false; // Fbo is empty. No need to render anything
+		}
+		
+		if(adhocFbo.fbo.isFailed()) {
+			FboRendering fakeRendering = renderingPool.obtain();
+			// Minimal things needed:
+			fakeRendering.adhocFbo = adhocFbo;
+			renderingStack.add(fakeRendering);
+			return true; // Fbo allocation failed. Request re-render.
 		}
 		
 		if(!adhocFbo.dirty) {
@@ -129,8 +135,7 @@ public class FboManager implements IHookableFboManager, IStore {
 		spriteBatch.flush();
 		
 		if(currentRendering.parentRendering != null) {
-			currentRendering.parentRendering.spriteBatch.flush();
-			currentRendering.parentRendering.adhocFbo.fbo.end();
+			currentRendering.parentRendering.flushAndEnd();
 		}
 		
 		// 4. begin current fbo
@@ -152,8 +157,13 @@ public class FboManager implements IHookableFboManager, IStore {
 	
 	@Override
 	public void done() {
-		// 7. flush + end current fbo
 		FboRendering currentRendering = renderingStack.pop();
+		
+		if(currentRendering.adhocFbo.fbo.isFailed()) {
+			return; // Fbo failed to allocate. Rendering happened to screen (or other fbo). We are already done.
+		}
+		
+		// 7. flush + end current fbo
 		currentRendering.spriteBatch.flush();
 		currentRendering.adhocFbo.fbo.end();
 		currentRendering.adhocFbo.dirty = false;
@@ -182,6 +192,10 @@ public class FboManager implements IHookableFboManager, IStore {
 		currentRendering.clear();
 	}
 	
+	@Override
+	public boolean failed() {
+		return renderingStack.peek().adhocFbo.fbo.isFailed();
+	}
 
 	@Override
 	public void setDirty(IFboDefinition definition) {
@@ -291,6 +305,13 @@ public class FboManager implements IHookableFboManager, IStore {
 			spriteBatch = null;
 			parentRendering = null;
 		}
+		
+		public void flushAndEnd() {
+			if(!adhocFbo.fbo.isFailed()) {
+				spriteBatch.flush();
+				adhocFbo.fbo.end();
+			}
+		}
 	}
 	
 	private static class AdhocFbo {
@@ -345,8 +366,10 @@ public class FboManager implements IHookableFboManager, IStore {
 					
 					fbo.setupRegion(textureRegion, newWidth, newHeight);
 				}
-				textureRegion.setRegionWidth(newWidth);
-				textureRegion.setRegionWidth(newHeight);
+				if(textureRegion.getTexture() != null) {
+					textureRegion.setRegionWidth(newWidth);
+					textureRegion.setRegionWidth(newHeight);
+				}
 				this.x = newX;
 				this.y = newY;
 			}
@@ -367,7 +390,12 @@ public class FboManager implements IHookableFboManager, IStore {
 			if(width <= 0 || height <= 0) {
 				return new EmptyFrameBuffer(width, height);
 			}
-			return new RealFrameBuffer(new FrameBuffer(Pixmap.Format.RGBA8888, width, height, false));
+			try {
+				return new RealFrameBuffer(new FrameBuffer(Pixmap.Format.RGBA8888, width, height, false));
+			} catch(Exception e) {
+				e.printStackTrace();
+				return new FailedFrameBuffer(width, height);
+			}
 		}
 		
 		public void dispose() {
@@ -381,6 +409,7 @@ public class FboManager implements IHookableFboManager, IStore {
 		int getWidth();
 		int getHeight();
 		boolean isEmpty();
+		boolean isFailed();
 		void begin();
 		void end();
 		void setupRegion(TextureRegion textureRegion, int width, int height);
@@ -402,6 +431,11 @@ public class FboManager implements IHookableFboManager, IStore {
 		
 		@Override
 		public boolean isEmpty() {
+			return false;
+		}
+		
+		@Override
+		public boolean isFailed() {
 			return false;
 		}
 
@@ -463,6 +497,57 @@ public class FboManager implements IHookableFboManager, IStore {
 		@Override
 		public void end() {
 			throw new IllegalStateException();
+		}
+
+		@Override
+		public void setupRegion(TextureRegion textureRegion, int width, int height) {
+		}
+
+		@Override
+		public void dispose() {
+		}
+		
+		@Override
+		public boolean isFailed() {
+			return false;
+		}
+	}
+	
+	private static class FailedFrameBuffer implements IFrameBuffer {
+		private final int width;
+		private final int height;
+		
+		public FailedFrameBuffer(int width, int height) {
+			this.width = width;
+			this.height = height;
+		}
+
+		@Override
+		public int getWidth() {
+			return width;
+		}
+
+		@Override
+		public int getHeight() {
+			return height;
+		}
+
+		@Override
+		public boolean isEmpty() {
+			return false;
+		}
+		
+		@Override
+		public boolean isFailed() {
+			return true;
+		}
+
+		@Override
+		public void begin() {
+		}
+
+		@Override
+		public void end() {
 		}
 
 		@Override

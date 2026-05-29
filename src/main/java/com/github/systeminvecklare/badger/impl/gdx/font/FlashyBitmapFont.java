@@ -345,7 +345,23 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 				GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
 				gdxDrawCycle.updateSpriteBatchTransform();
 				SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
-				FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, 0, 0);
+				if(fboHandle.failed()) {
+					boolean colorDiffers = false;
+					for(GlyphLayout.GlyphRun run : glyphLayout.runs) {
+						if(!color.equals(run.color)) {
+							colorDiffers = true;
+							break;
+						}
+					}
+					BitmapFont font = FlashyBitmapFont.this.fontHolder.getFont();
+					if(colorDiffers) {
+						font.setColor(color);
+						glyphLayout = createLayout(font, text);
+					}
+					font.draw(spriteBatch, glyphLayout, 0, 0);
+				} else {
+					FlashyBitmapFont.this.fontHolder.getFont().draw(spriteBatch, glyphLayout, 0, 0);
+				}
 				fboHandle.done();
 			}
 			// Restore transform
