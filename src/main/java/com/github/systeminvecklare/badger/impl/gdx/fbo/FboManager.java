@@ -23,6 +23,7 @@ import com.github.systeminvecklare.badger.core.pooling.SimplePool;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
 import com.github.systeminvecklare.badger.impl.gdx.GdxTransform;
 import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
+import com.github.systeminvecklare.badger.impl.gdx.util.GlFlagState;
 
 public class FboManager implements IHookableFboManager, IStore {
 	private final IPool<FboRendering> renderingPool = new SimplePool<FboRendering>(2, 10) {
@@ -517,43 +518,6 @@ public class FboManager implements IHookableFboManager, IStore {
 			this.srcFuncAlpha = srcFuncAlpha;
 			this.dstFuncAlpha = dstFuncAlpha;
 			return this;
-		}
-	}
-	
-	
-	private static class GlFlagState {
-		private final int flagEnum;
-		private boolean storedState;
-		private boolean changed = false;
-
-		public GlFlagState(int flagEnum) {
-			this.flagEnum = flagEnum;
-		}
-		
-		public void storeState() {
-			storedState = Gdx.gl.glIsEnabled(flagEnum);
-			changed = false;
-		}
-
-		public void setEnabled(boolean enabled) {
-			if(enabled != storedState) {
-				changed = true;
-				if(enabled) {
-					Gdx.gl.glEnable(flagEnum);
-				} else {
-					Gdx.gl.glDisable(flagEnum);
-				}
-			}
-		}
-		
-		public void restoreState() {
-			if(changed) {
-				if(storedState) {
-					Gdx.gl.glEnable(flagEnum);
-				} else {
-					Gdx.gl.glDisable(flagEnum);
-				}
-			}
 		}
 	}
 }

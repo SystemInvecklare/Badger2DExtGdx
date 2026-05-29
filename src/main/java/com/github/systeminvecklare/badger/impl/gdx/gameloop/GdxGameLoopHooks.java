@@ -1,11 +1,7 @@
 package com.github.systeminvecklare.badger.impl.gdx.gameloop;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Pixmap.Format;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.github.systeminvecklare.badger.core.graphics.components.FlashyEngine;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
@@ -18,9 +14,9 @@ import com.github.systeminvecklare.badger.impl.gdx.FlashyGdxEngine;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.IFboManager;
 import com.github.systeminvecklare.badger.impl.gdx.fbo.IHookableFboManager;
+import com.github.systeminvecklare.badger.impl.gdx.util.GlFlagState;
 
 public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopHooks {
-	private final Texture texture = new Texture(1, 1, Format.RGB888);
 	private final IPixelTranslator pixelTranslator;
 	private final boolean useLetterboxing;
 	private final IHookableFboManager fboManager;
@@ -32,6 +28,8 @@ public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopH
 			fboManager = null;
 		}
 	}
+	private final GlFlagState GL_BLEND = new GlFlagState(GL20.GL_BLEND);
+	private final GlFlagState GL_SCISSOR_TEST = new GlFlagState(GL20.GL_SCISSOR_TEST);
 	
 	private ITransform originalTransform = null;
 
@@ -70,50 +68,56 @@ public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopH
 			originalTransform.free();
 			originalTransform = null;
 			
-			if(!useLetterboxing) {
-				return;
+			((GdxDrawCycle) drawCycle).getSpriteBatch().flush();
+			if(useLetterboxing) {
+				EasyPooler ep = EasyPooler.obtainFresh();
+				try {
+					final int gdxWidth = Gdx.graphics.getWidth();
+					final int gdxHeight = Gdx.graphics.getHeight();
+					
+					Position bottomLeft = pixelTranslator.translate(0, gdxHeight, ep.obtain(Position.class));
+					Position topRight = pixelTranslator.translate(gdxWidth, 0, ep.obtain(Position.class));
+					
+					float xScale = gdxWidth/(topRight.getX() - bottomLeft.getX());
+					float yScale = gdxHeight/(topRight.getY() - bottomLeft.getY());
+					
+					int leftBorder = (int) Math.ceil(-bottomLeft.getX()*xScale);
+					int rightBorder = (int) Math.ceil(gdxWidth - xScale*(gdxWidth - bottomLeft.getX()));
+					
+					int bottomBorder = (int) Math.ceil(-bottomLeft.getY()*yScale);
+					int topBorder = (int) Math.ceil(gdxHeight - yScale*(gdxHeight - bottomLeft.getY()));
+					
+					GL_BLEND.storeState();
+					GL_SCISSOR_TEST.storeState();
+					
+					GL_BLEND.setEnabled(false);
+					GL_SCISSOR_TEST.setEnabled(true);
+					Gdx.gl.glClearColor(0, 0, 0, 1);
+					
+					if (leftBorder > 0) {
+					    Gdx.gl.glScissor(0, 0, leftBorder, gdxHeight);
+					    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+					}
+					if (rightBorder > 0) {
+					    Gdx.gl.glScissor(gdxWidth - rightBorder, 0, rightBorder, gdxHeight);
+					    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+					}
+					if (bottomBorder > 0) {
+					    Gdx.gl.glScissor(0, 0, gdxWidth, bottomBorder);
+					    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+					}
+					if (topBorder > 0) {
+					    Gdx.gl.glScissor(0, gdxHeight - topBorder, gdxWidth, topBorder);
+					    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+					}
+					
+					GL_BLEND.restoreState();
+					GL_SCISSOR_TEST.restoreState();
+				} finally {
+					ep.freeAllAndSelf();
+				}
 			}
 			
-			GdxDrawCycle gdxDrawCycle = (GdxDrawCycle) drawCycle;
-			gdxDrawCycle.updateSpriteBatchTransform();
-			SpriteBatch spriteBatch = gdxDrawCycle.getSpriteBatch();
-			spriteBatch.setShader(null);
-			//TODO we should create a simple shader we can use that doesn't need a texture.... And render "natively"
-			spriteBatch.setColor(Color.BLACK);
-			
-			EasyPooler ep = EasyPooler.obtainFresh();
-			try {
-				final int gdxWidth = Gdx.graphics.getWidth();
-				final int gdxHeight = Gdx.graphics.getHeight();
-				
-				Position bottomLeft = pixelTranslator.translate(0, gdxHeight, ep.obtain(Position.class));
-				Position topRight = pixelTranslator.translate(gdxWidth, 0, ep.obtain(Position.class));
-				
-				float xScale = gdxWidth/(topRight.getX() - bottomLeft.getX());
-				float yScale = gdxHeight/(topRight.getY() - bottomLeft.getY());
-				
-				float leftBorder = -bottomLeft.getX()*xScale;
-				float rightBorder = gdxWidth - xScale*(gdxWidth - bottomLeft.getX());
-				
-				float bottomBorder = -bottomLeft.getY()*yScale;
-				float topBorder = gdxHeight - yScale*(gdxHeight - bottomLeft.getY());
-				
-				if(leftBorder > 0) {
-					spriteBatch.draw(texture, 0, 0, leftBorder, gdxHeight);
-				}
-				if(rightBorder > 0) {
-					spriteBatch.draw(texture, gdxWidth - rightBorder, 0, rightBorder, gdxHeight);
-				}
-				if(bottomBorder > 0) {
-					spriteBatch.draw(texture, 0, 0, gdxWidth, bottomBorder);
-				}
-				if(topBorder > 0) {
-					spriteBatch.draw(texture, 0, gdxHeight - topBorder, gdxWidth, topBorder);
-				}
-			} finally {
-				ep.freeAllAndSelf();
-			}
-			spriteBatch.flush();
 			if(fboManager != null) {
 				fboManager.onAfterSceneDraw();
 			}
