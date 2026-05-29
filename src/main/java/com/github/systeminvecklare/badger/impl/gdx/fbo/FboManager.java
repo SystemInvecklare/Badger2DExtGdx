@@ -268,6 +268,11 @@ public class FboManager implements IHookableFboManager, IStore {
 	}
 	
 	@Override
+	public void onScreenResize(int width, int height) {
+		disposeInventory();
+	}
+	
+	@Override
 	public void reloadInventory() {
 	}
 	

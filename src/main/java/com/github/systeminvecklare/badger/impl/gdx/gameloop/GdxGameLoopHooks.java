@@ -32,6 +32,9 @@ public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopH
 	private final GlFlagState GL_SCISSOR_TEST = new GlFlagState(GL20.GL_SCISSOR_TEST);
 	
 	private ITransform originalTransform = null;
+	
+	private int gdxWidth = -1;
+	private int gdxHeight = -1;
 
 	public GdxGameLoopHooks(IPixelTranslator pixelTranslator, boolean useLetterboxing) {
 		this.pixelTranslator = pixelTranslator;
@@ -42,6 +45,17 @@ public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopH
 	public void onBeforeDraw() {
 		Gdx.gl.glClearColor(1, 1, 1, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		
+		final int newGdxWidth = Gdx.graphics.getWidth();
+		final int newGdxHeight = Gdx.graphics.getHeight();
+		
+		if(newGdxWidth != gdxWidth || newGdxHeight != gdxHeight) {
+			if(fboManager != null && gdxWidth != -1) {
+				fboManager.onScreenResize(newGdxWidth, newGdxHeight);
+			}
+			gdxWidth = newGdxWidth;
+			gdxHeight = newGdxHeight;
+		}
 	}
 	
 	@Override
@@ -72,9 +86,6 @@ public class GdxGameLoopHooks extends GameLoopHooksAdapter implements IGameLoopH
 			if(useLetterboxing) {
 				EasyPooler ep = EasyPooler.obtainFresh();
 				try {
-					final int gdxWidth = Gdx.graphics.getWidth();
-					final int gdxHeight = Gdx.graphics.getHeight();
-					
 					Position bottomLeft = pixelTranslator.translate(0, gdxHeight, ep.obtain(Position.class));
 					Position topRight = pixelTranslator.translate(gdxWidth, 0, ep.obtain(Position.class));
 					
