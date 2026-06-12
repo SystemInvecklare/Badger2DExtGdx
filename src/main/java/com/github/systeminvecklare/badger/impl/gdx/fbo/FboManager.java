@@ -373,7 +373,7 @@ public class FboManager implements IHookableFboManager, IStore {
 				}
 				if(textureRegion.getTexture() != null) {
 					textureRegion.setRegionWidth(newWidth);
-					textureRegion.setRegionWidth(newHeight);
+					textureRegion.setRegionHeight(newHeight);
 				}
 				this.x = newX;
 				this.y = newY;
