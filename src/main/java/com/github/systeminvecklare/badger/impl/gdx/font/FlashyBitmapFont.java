@@ -137,7 +137,8 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 				fboBoundsOrNull.setPosition(0, 0);
 			}
 			fboBoundsOrNull.setWidth(Mathf.ceilToInt(glyphLayout.width));
-			fboBoundsOrNull.setHeight(Mathf.ceilToInt(glyphLayout.height - font.getDescent()));
+			fboBoundsOrNull.setHeight(Mathf.ceilToInt(glyphLayout.height - font.getDescent()+font.getAscent()));
+			fboBoundsOrNull.outset(1); // Safety
 		}
 		return new FloatRectangle(x != null ? x : 0, (y != null ? y : 0) - font.getCapHeight(), glyphLayout.width, glyphLayout.height);
 	}
