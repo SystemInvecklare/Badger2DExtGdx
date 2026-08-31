@@ -7,17 +7,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
 import com.github.systeminvecklare.badger.core.pooling.IPool;
@@ -615,35 +612,36 @@ public class FboManager implements IHookableFboManager, IStore {
 		}
 	}
 	
-	@SuppressWarnings("unused")
-	private void debug_writeToFile(FboRendering currentRendering, FileHandle targetFile) {
-		if (currentRendering.parentRendering != null) {
-			currentRendering.parentRendering.adhocFbo.fbo.end();
-		}
-		currentRendering.spriteBatch.flush();
-		currentRendering.adhocFbo.fbo.begin();
-		int w = currentRendering.adhocFbo.textureRegion.getRegionWidth();
-		int h = currentRendering.adhocFbo.textureRegion.getRegionHeight();
-		Pixmap pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, w, h);
-
-		currentRendering.adhocFbo.fbo.end();
-		if (currentRendering.parentRendering != null) {
-			currentRendering.parentRendering.adhocFbo.fbo.begin();
-		}
-
-		Pixmap flipped = new Pixmap(w, h, pixmap.getFormat());
-
-		for (int y = 0; y < h; y++) {
-			for (int x = 0; x < w; x++) {
-				Color pixel = new Color(pixmap.getPixel(x, y));
-				pixel.a = 1f - pixel.a;
-				flipped.drawPixel(x, h - 1 - y, pixel.toIntBits());
-			}
-		}
-
-		pixmap.dispose();
-
-		PixmapIO.writePNG(targetFile, flipped);
-		flipped.dispose();
-	}
+	// Note: This needs to be commented out so that GWT can build
+//	@SuppressWarnings("unused")
+//	private void debug_writeToFile(FboRendering currentRendering, FileHandle targetFile) {
+//		if (currentRendering.parentRendering != null) {
+//			currentRendering.parentRendering.adhocFbo.fbo.end();
+//		}
+//		currentRendering.spriteBatch.flush();
+//		currentRendering.adhocFbo.fbo.begin();
+//		int w = currentRendering.adhocFbo.textureRegion.getRegionWidth();
+//		int h = currentRendering.adhocFbo.textureRegion.getRegionHeight();
+//		Pixmap pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, w, h);
+//
+//		currentRendering.adhocFbo.fbo.end();
+//		if (currentRendering.parentRendering != null) {
+//			currentRendering.parentRendering.adhocFbo.fbo.begin();
+//		}
+//
+//		Pixmap flipped = new Pixmap(w, h, pixmap.getFormat());
+//
+//		for (int y = 0; y < h; y++) {
+//			for (int x = 0; x < w; x++) {
+//				Color pixel = new Color(pixmap.getPixel(x, y));
+//				pixel.a = 1f - pixel.a;
+//				flipped.drawPixel(x, h - 1 - y, pixel.toIntBits());
+//			}
+//		}
+//
+//		pixmap.dispose();
+//
+//		PixmapIO.writePNG(targetFile, flipped);
+//		flipped.dispose();
+//	}
 }
