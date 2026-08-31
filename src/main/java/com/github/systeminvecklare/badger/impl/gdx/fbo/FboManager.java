@@ -341,8 +341,6 @@ public class FboManager implements IHookableFboManager, IStore {
 			this.fbo = newFrameBuffer(potWidth, potHeight);
 			
 			fbo.setupRegion(textureRegion, width, height);
-			
-			this.textureRegion.flip(false, true);
 		}
 		
 		public void draw(SpriteBatch spriteBatch) {
@@ -432,6 +430,7 @@ public class FboManager implements IHookableFboManager, IStore {
 		public void setupRegion(TextureRegion textureRegion, int width, int height) {
 			textureRegion.setRegion(real.getColorBufferTexture());
 			textureRegion.setRegion(0, 0, width, height);
+			textureRegion.flip(false, true);
 		}
 		
 		@Override
