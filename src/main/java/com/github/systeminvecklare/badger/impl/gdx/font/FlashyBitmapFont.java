@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.BitmapFont.BitmapFontData;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout.GlyphRun;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -114,7 +115,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 		return newGlyphLayout(fontHolder.getFont(), text).height;
 	}
 	
-	private FloatRectangle getBoundsFromGlyphLayout(GlyphLayout glyphLayout, PlaceholderWidget fboBoundsOrNull) {
+	private FloatRectangle getBoundsFromGlyphLayout(GlyphLayout glyphLayout, PlaceholderWidget fboBoundsOrNull, BitmapFontData fontData) {
 		Float x = null;
 		Float y = null;
 		for(GlyphRun run : glyphLayout.runs) {
@@ -136,7 +137,8 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 			} else {
 				fboBoundsOrNull.setPosition(0, 0);
 			}
-			fboBoundsOrNull.setWidth(Mathf.ceilToInt(glyphLayout.width));
+			fboBoundsOrNull.setPosition(fboBoundsOrNull.getX() - (int) Math.ceil(fontData.padLeft), fboBoundsOrNull.getY());
+			fboBoundsOrNull.setWidth(Mathf.ceilToInt(glyphLayout.width + fontData.padRight + fontData.padLeft));
 			fboBoundsOrNull.setHeight(Mathf.ceilToInt(glyphLayout.height - font.getDescent()+font.getAscent()));
 			fboBoundsOrNull.outset(1); // Safety
 		}
@@ -145,18 +147,18 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 	
 	@Override
 	public FloatRectangle getBounds(String text) {
-		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text), null);
+		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text), null, fontHolder.getFont().getData());
 	}
 	
 	
 	@Override
 	public FloatRectangle getBounds(String text, float maxWidth) {
-		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text, Color.WHITE, maxWidth, Align.left, true), null);
+		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text, Color.WHITE, maxWidth, Align.left, true), null, fontHolder.getFont().getData());
 	}
 
 	@Override
 	public FloatRectangle getBoundsCentered(String text, float maxWidth) {
-		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text, Color.WHITE, maxWidth, Align.center, true), null);
+		return getBoundsFromGlyphLayout(newGlyphLayout(fontHolder.getFont(), text, Color.WHITE, maxWidth, Align.center, true), null, fontHolder.getFont().getData());
 	}
 
 	@Override
@@ -308,7 +310,7 @@ public class FlashyBitmapFont implements IFlashyFont<Color> {
 			semiTransparentColor.a = color.a;
 			bitmapFont.setColor(useFboManager ? semiTransparentColor : color);
 			this.glyphLayout = createLayout(bitmapFont, text);
-			this.bounds = getBoundsFromGlyphLayout(glyphLayout, useFboManager ? fboBounds : null);
+			this.bounds = getBoundsFromGlyphLayout(glyphLayout, useFboManager ? fboBounds : null, fontHolder.getFont().getData());
 			cacheKey.update(color);
 			fboHandle.setRectangleDirty();
 			fboHandle.setDirty();
