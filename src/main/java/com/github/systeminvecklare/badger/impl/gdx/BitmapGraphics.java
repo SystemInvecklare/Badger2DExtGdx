@@ -21,7 +21,10 @@ public class BitmapGraphics implements IMovieClipLayer {
 	private TextureWrap xWrap = TextureWrap.ClampToEdge;
 	private TextureWrap yWrap = TextureWrap.ClampToEdge;
 	private boolean hittable = false;
-	
+	private boolean flipX = false;
+	private boolean flipY = false;
+
+
 	public BitmapGraphics(String textureName, Color tint) {
 		this(textureName, tint, null, null);
 	}
@@ -39,6 +42,15 @@ public class BitmapGraphics implements IMovieClipLayer {
 		return this;
 	}
 	
+	public BitmapGraphics setFlipX(boolean flipX) {
+		this.flipX = flipX;
+		return this;
+	}
+	
+	public BitmapGraphics setFlipY(boolean flipY) {
+		this.flipY = flipY;
+		return this;
+	}
 	
 	public BitmapGraphics setCenter(float xAndY) {
 		return setCenter(xAndY, xAndY);
@@ -59,7 +71,14 @@ public class BitmapGraphics implements IMovieClipLayer {
 		
 		float theWidth = getWidth();
 		float theHeight = getHeight();
-		texture.draw(spriteBatch, -getCenterX(), -getCenterY(), theWidth, theHeight);
+		boolean flipX = getFlipX();
+		boolean flipY = getFlipY();
+		if(flipX || flipY) {
+			texture.draw(spriteBatch, -getCenterX(), -getCenterY(), theWidth, theHeight, 0, 0, texture.getWidth(), texture.getHeight(), flipX, flipY);
+		}
+		else {
+			texture.draw(spriteBatch, -getCenterX(), -getCenterY(), theWidth, theHeight);			
+		}
 	}
 	
 	public Color getTint() {
@@ -108,6 +127,14 @@ public class BitmapGraphics implements IMovieClipLayer {
 			theWidth = width;
 		}
 		return theWidth;
+	}
+	
+	public boolean getFlipX() {
+		return flipX;
+	}
+	
+	public boolean getFlipY() {
+		return flipY;
 	}
 	
 	public float getCenterX() {
