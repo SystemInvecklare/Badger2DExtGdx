@@ -616,6 +616,7 @@ public class FboManager implements IHookableFboManager, IStore {
 //	@SuppressWarnings("unused")
 //	private void debug_writeToFile(FboRendering currentRendering, FileHandle targetFile) {
 //		if (currentRendering.parentRendering != null) {
+//			currentRendering.parentRendering.spriteBatch.flush();
 //			currentRendering.parentRendering.adhocFbo.fbo.end();
 //		}
 //		currentRendering.spriteBatch.flush();
@@ -634,7 +635,17 @@ public class FboManager implements IHookableFboManager, IStore {
 //		for (int y = 0; y < h; y++) {
 //			for (int x = 0; x < w; x++) {
 //				Color pixel = new Color(pixmap.getPixel(x, y));
-//				pixel.a = 1f - pixel.a;
+//				
+//				pixel.a = 1f - pixel.a; //TODO need to check how half-transparent turn out.
+//				
+//				float temp = pixel.a;
+//				pixel.a = pixel.r;
+//				pixel.r = temp;
+//				
+//				temp = pixel.g;
+//				pixel.g = pixel.b;
+//				pixel.b = temp;
+//				
 //				flipped.drawPixel(x, h - 1 - y, pixel.toIntBits());
 //			}
 //		}
