@@ -1,7 +1,10 @@
 package com.github.systeminvecklare.badger.impl.gdx.fbo;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
+import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawable;
+import com.github.systeminvecklare.badger.core.widget.IRectangle;
 
 /**
  * Usage:
@@ -33,4 +36,6 @@ public interface IFboManager {
 	void setDirty(IFboDefinition definition);
 	void setRectangleDirty(IFboDefinition definition);
 	void setTint(IFboDefinition definition, Color tint);
+	
+	Pixmap renderToPixmap(IRectangle rectangle, IDrawCycle drawCycle, IDrawable drawable);
 }

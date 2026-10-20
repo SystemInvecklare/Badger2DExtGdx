@@ -15,11 +15,14 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ScreenUtils;
 import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawCycle;
+import com.github.systeminvecklare.badger.core.graphics.components.core.IDrawable;
 import com.github.systeminvecklare.badger.core.graphics.components.transform.ITransform;
 import com.github.systeminvecklare.badger.core.pooling.IPool;
 import com.github.systeminvecklare.badger.core.pooling.IPoolable;
 import com.github.systeminvecklare.badger.core.pooling.SimplePool;
+import com.github.systeminvecklare.badger.core.widget.IRectangle;
 import com.github.systeminvecklare.badger.impl.gdx.GdxDrawCycle;
 import com.github.systeminvecklare.badger.impl.gdx.GdxTransform;
 import com.github.systeminvecklare.badger.impl.gdx.store.IStore;
@@ -155,12 +158,11 @@ public class FboManager implements IHookableFboManager, IStore {
 		return true;
 	}
 	
-	@Override
-	public void done() {
+	private FboRendering internalDone() {
 		FboRendering currentRendering = renderingStack.pop();
 		
 		if(currentRendering.adhocFbo.fbo.isFailed()) {
-			return; // Fbo failed to allocate. Rendering happened to screen (or other fbo). We are already done.
+			return null; // Fbo failed to allocate. Rendering happened to screen (or other fbo). We are already done.
 		}
 		
 		// 7. flush + end current fbo
@@ -191,7 +193,15 @@ public class FboManager implements IHookableFboManager, IStore {
 		
 //		debug_writeToFile(currentRendering, targetFile);
 		
-		currentRendering.clear();
+		return currentRendering;
+	}
+	
+	@Override
+	public void done() {
+		FboRendering currentRendering = internalDone();
+		if(currentRendering != null) {
+			currentRendering.clear();
+		}
 	}
 	
 	@Override
@@ -230,6 +240,73 @@ public class FboManager implements IHookableFboManager, IStore {
 		}
 	}
 	
+	@Override
+	public Pixmap renderToPixmap(IRectangle rectangle, IDrawCycle drawCycle, IDrawable drawable) {
+		if(!renderingStack.isEmpty()) {
+			System.err.println("Warning! renderToPixmap(...) called with renderingStack size "+renderingStack.size+". This is untested and may produce unreliable results.");
+		}
+		
+		PixmapRenderTarget renderTarget = new PixmapRenderTarget(rectangle);
+		boolean success = drawCached(drawCycle, renderTarget);
+		if(!success) {
+			throw new RuntimeException("Failed!");
+		}
+		drawable.draw(drawCycle);
+		FboRendering currentRendering = internalDone();
+		
+		Pixmap pixmap = internalRenderToPixmap(currentRendering, false);
+		
+		currentRendering.clear();
+		
+		AdhocFbo adhocFbo = fbos.remove(renderTarget);
+		if(adhocFbo != null) {
+			adhocFbo.dispose();
+		}
+		
+		return pixmap;
+	}
+	
+	private Pixmap internalRenderToPixmap(FboRendering currentRendering, boolean flipped) {
+		if (currentRendering.parentRendering != null) {
+			currentRendering.parentRendering.spriteBatch.flush();
+			currentRendering.parentRendering.adhocFbo.fbo.end();
+		}
+		currentRendering.spriteBatch.flush();
+		currentRendering.adhocFbo.fbo.begin();
+		int w = currentRendering.adhocFbo.textureRegion.getRegionWidth();
+		int h = currentRendering.adhocFbo.textureRegion.getRegionHeight();
+		Pixmap pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, w, h);
+		
+		currentRendering.adhocFbo.fbo.end();
+		if (currentRendering.parentRendering != null) {
+			currentRendering.parentRendering.adhocFbo.fbo.begin();
+		}
+		
+		Pixmap swizzled = new Pixmap(w, h, pixmap.getFormat());
+		
+		for (int y = 0; y < h; y++) {
+			for (int x = 0; x < w; x++) {
+				Color pixel = new Color(pixmap.getPixel(x, y));
+				
+				pixel.a = 1f - pixel.a; //TODO need to check how half-transparent turn out.
+				
+				float temp = pixel.a;
+				pixel.a = pixel.r;
+				pixel.r = temp;
+				
+				temp = pixel.g;
+				pixel.g = pixel.b;
+				pixel.b = temp;
+				
+				swizzled.drawPixel(x, flipped ? (h - 1 - y) : y, pixel.toIntBits());
+			}
+		}
+		
+		pixmap.dispose();
+		
+		return swizzled;
+	}
+
 	/**
 	 * Override and clear Array instead if you want to disable crash. Could be good for production.
 	 */
@@ -615,44 +692,8 @@ public class FboManager implements IHookableFboManager, IStore {
 	// Note: This needs to be commented out so that GWT can build
 //	@SuppressWarnings("unused")
 //	private void debug_writeToFile(FboRendering currentRendering, FileHandle targetFile) {
-//		if (currentRendering.parentRendering != null) {
-//			currentRendering.parentRendering.spriteBatch.flush();
-//			currentRendering.parentRendering.adhocFbo.fbo.end();
-//		}
-//		currentRendering.spriteBatch.flush();
-//		currentRendering.adhocFbo.fbo.begin();
-//		int w = currentRendering.adhocFbo.textureRegion.getRegionWidth();
-//		int h = currentRendering.adhocFbo.textureRegion.getRegionHeight();
-//		Pixmap pixmap = ScreenUtils.getFrameBufferPixmap(0, 0, w, h);
-//
-//		currentRendering.adhocFbo.fbo.end();
-//		if (currentRendering.parentRendering != null) {
-//			currentRendering.parentRendering.adhocFbo.fbo.begin();
-//		}
-//
-//		Pixmap flipped = new Pixmap(w, h, pixmap.getFormat());
-//
-//		for (int y = 0; y < h; y++) {
-//			for (int x = 0; x < w; x++) {
-//				Color pixel = new Color(pixmap.getPixel(x, y));
-//				
-//				pixel.a = 1f - pixel.a; //TODO need to check how half-transparent turn out.
-//				
-//				float temp = pixel.a;
-//				pixel.a = pixel.r;
-//				pixel.r = temp;
-//				
-//				temp = pixel.g;
-//				pixel.g = pixel.b;
-//				pixel.b = temp;
-//				
-//				flipped.drawPixel(x, h - 1 - y, pixel.toIntBits());
-//			}
-//		}
-//
+//		Pixmap pixmap = internalRenderToPixmap(currentRendering, true);
+//		PixmapIO.writePNG(targetFile, pixmap);
 //		pixmap.dispose();
-//
-//		PixmapIO.writePNG(targetFile, flipped);
-//		flipped.dispose();
 //	}
 }
